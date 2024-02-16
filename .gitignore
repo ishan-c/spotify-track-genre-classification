@@ -5,7 +5,8 @@
 data/
 
 # API credentials
-credentials.txt
+spotify_token.json
+.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
