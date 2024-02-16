@@ -4,6 +4,9 @@
 # Raw data
 data/
 
+# API credentials
+credentials.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
