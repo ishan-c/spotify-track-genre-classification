@@ -1,3 +1,16 @@
+"""
+This module allows for authentication with the Spotify Web API using the Client Credentials Flow. It handles requesting,
+saving, and refreshing access tokens to ensure uninterrupted access to the API for server-to-server applications.
+
+The module uses environment variables to manage sensitive information such as the
+client ID and client secret required for the authentication process.
+
+Requirements:
+- A `.env` file or environment variables `CLIENT_ID`, `CLIENT_SECRET`, and `PROJECT_ROOT`
+  must be set for the module to function correctly.
+- The `requests` library is used to make HTTP requests to the Spotify API.
+- The `dotenv` library is used to load environment variables from the `.env` file.
+"""
 import base64
 import json
 import os
@@ -13,6 +26,13 @@ TOKEN_FILE_PATH = Path(os.getenv('PROJECT_ROOT', '.')) / 'spotify_token.json'
 
 
 def save_token(token, expires):
+    """
+    Saves the access token and its expiration time to a JSON file in the project root
+
+    Parameters:
+    - token (str): spotify access token
+    - expires (datetime): expiration time of access token
+    """
     data = {
         'access_token': token,
         'expires': expires.isoformat()
@@ -21,7 +41,14 @@ def save_token(token, expires):
         json.dump(data, f)
 
 
-def load_token():
+def load_token() -> tuple:
+    """
+    Loads the access token and its expiration time from a JSON file
+
+    Returns:
+    - tuple: tuple containing the access token (str) and its expiration time (datetime), or (None, None) if the token
+      does not exist or the file is not found
+    """
     if TOKEN_FILE_PATH.exists():
         with open(TOKEN_FILE_PATH, 'r') as f:
             data = json.load(f)
@@ -29,7 +56,17 @@ def load_token():
     return None, None
 
 
-def request_access_token():
+def request_access_token() -> str:
+    """
+    Requests a new Spotify access token using the Client Credentials Flow. If an existing token is not expired, it
+    returns the existing token. Otherwise, it requests a new token, saves it, and returns it.
+
+    Returns:
+    - str: the Spotify access token
+
+    Raises:
+    - requests.RequestException: if there is an error making the request to the Spotify API.
+    """
     access_token, expires = load_token()
     if access_token and expires and datetime.now() < (expires - timedelta(seconds=300)):
         return access_token
