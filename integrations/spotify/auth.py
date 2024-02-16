@@ -25,7 +25,7 @@ AUTH_URL = 'https://accounts.spotify.com/api/token'
 TOKEN_FILE_PATH = Path(os.getenv('PROJECT_ROOT', '.')) / 'spotify_token.json'
 
 
-def save_token(token, expires):
+def save_token(token: str, expires: datetime):
     """
     Saves the access token and its expiration time to a JSON file in the project root
 
@@ -56,24 +56,40 @@ def load_token() -> tuple:
     return None, None
 
 
-def request_access_token() -> str:
+def package_access_token(token: str) -> dict:
+    """
+    Creates a dictionary containing the authorization headers required for Spotify API requests
+
+    Parameters:
+    - token (str): the Spotify access token
+
+    Returns:
+    - dict: dictionary with `Authorization` header, ready for use in requests
+    """
+    return {
+        'Authorization': f'Bearer {token}',
+    }
+
+
+def request_access_token() -> dict:
     """
     Requests a new Spotify access token using the Client Credentials Flow. If an existing token is not expired, it
     returns the existing token. Otherwise, it requests a new token, saves it, and returns it.
 
     Returns:
-    - str: the Spotify access token
+    - dict: headers dictionary containing the Spotify access token used for authentication
 
     Raises:
     - requests.RequestException: if there is an error making the request to the Spotify API.
     """
     access_token, expires = load_token()
     if access_token and expires and datetime.now() < (expires - timedelta(seconds=300)):
-        return access_token
+        return package_access_token(access_token)
 
     credentials = base64.b64encode(f'{os.getenv("CLIENT_ID")}: {os.getenv("CLIENT_SECRET")}'.encode()).decode()
     auth_headers = {
-        'Authorization': f'Basic {credentials}'
+        'Authorization': f'Basic {credentials}',
+        'Content-Type': 'application/x-www-form-urlencoded'
     }
     auth_data = {
         'grant_type': 'client_credentials'
@@ -85,7 +101,7 @@ def request_access_token() -> str:
         expires = datetime.now() + timedelta(seconds=auth_response_json['expires_in'])
         access_token = auth_response_json['access_token']
         save_token(access_token, expires)
-        return access_token
+        return package_access_token(access_token)
     except requests.RequestException as e:
         print(f"Error requesting access token: {e}")
         raise
