@@ -17,6 +17,7 @@ root = Path(os.getenv('PROJECT_ROOT', '.'))
 TRACK_ID_FILE_PATH = root / 'data' / 'spotify_track_ids.csv'
 ARTIST_ID_FILE_PATH = root / 'data' / 'spotify_artist_ids.csv'
 TRACK_FEATURES_FILE_PATH = root / 'data' / 'spotify_track_features.csv'
+ARTIST_FEATURES_FILE_PATH = root / 'data' / 'spotify_artist_features.csv'
 DATASET_SIZE_THRESHOLD = 10
 BATCH_SIZE = 50
 
@@ -98,11 +99,33 @@ def collect_track_data(batch: List[str]) -> Tuple[Optional[List[dict]], Optional
     batch_track_data = call_spotify_endpoint(TRACK_DATA_ENDPOINT, track_ids)
     batch_audio_features = call_spotify_endpoint(AUDIO_FEATURES_ENDPOINT, track_ids)
     if not batch_track_data or not batch_audio_features:
-        print('Did not receive suitable API response for processing. Skipping batch...')
+        print('Did not receive suitable API response for processing tracks. Skipping batch...')
         return None, None
     batch_track_features, new_artist_ids = parse_track_responses(batch_track_data, batch_audio_features)
 
     return batch_track_features, new_artist_ids
+
+
+def parse_artist_responses(artist_data: dict) -> List[dict]:
+    batch_artist_features = []
+    for artist in artist_data['artists']:
+        artist_features = {ARTIST_FIELDS[field]: artist.get(field) for field in ARTIST_FIELDS}
+        artist_features['artist_followers'] = artist.get('followers', {}).get('total', 0)
+
+        batch_artist_features.append(artist_features)
+
+    return batch_artist_features
+
+
+def collect_artist_data(batch: list[str]) -> Optional[List[dict]]:
+    artist_ids = ','.join(batch)
+    batch_artist_data = call_spotify_endpoint(ARTIST_DATA_ENDPOINT, artist_ids)
+    if not batch_artist_data:
+        print('Did not receive suitable API response for processing artists. Skipping batch...')
+        return None
+    batch_artist_features = parse_artist_responses(batch_artist_data)
+
+    return batch_artist_features
 
 
 def main():
@@ -110,43 +133,59 @@ def main():
     ACCESS_HEADER = request_access_token()
     track_ids = get_track_ids()
     known_artist_ids, n_artists = get_existing_ids(ARTIST_ID_FILE_PATH)
-    processed_ids, n_seen = get_existing_ids(TRACK_ID_FILE_PATH)
-    new_track_ids = [track for track in track_ids if track not in processed_ids]
-    n_new = len(new_track_ids)
+    known_track_ids, n_tracks = get_existing_ids(TRACK_ID_FILE_PATH)
+    new_track_ids = [track for track in track_ids if track not in known_track_ids]
+    n_new_tracks = len(new_track_ids)
 
-    if n_new + n_seen >= DATASET_SIZE_THRESHOLD:
-        print(f'Attempting to add {n_new} tracks, which will exceed threshold {DATASET_SIZE_THRESHOLD}. '
+    if n_new_tracks + n_tracks >= DATASET_SIZE_THRESHOLD:
+        print(f'Attempting to add {n_new_tracks} tracks, which will exceed threshold {DATASET_SIZE_THRESHOLD}. '
               f'Increase threshold to try again.\nCancelling ingest.)')
         return
 
     with (open(TRACK_ID_FILE_PATH, mode='a', newline='', encoding='utf-8') as id_file,
-          open(ARTIST_ID_FILE_PATH, mode='a', newline='', encoding='utf-8') as artist_file,
+          open(ARTIST_ID_FILE_PATH, mode='a', newline='', encoding='utf-8') as artist_id_file,
           open(TRACK_FEATURES_FILE_PATH, mode='a', newline='', encoding='utf-8') as data_file):
 
-        id_writer = csv.writer(id_file)
-        artist_writer = csv.writer(artist_file)
-        data_writer = csv.DictWriter(data_file, fieldnames=CSV_FIELDNAMES)
+        track_id_writer = csv.writer(id_file)
+        artist_id_writer = csv.writer(artist_id_file)
+        track_data_writer = csv.DictWriter(data_file, fieldnames=CSV_FIELDNAMES)
 
-        if n_seen == 0:
-            data_writer.writeheader()
+        if n_tracks == 0:
+            track_data_writer.writeheader()
 
         processed_tracks = 0
-        n_new_artists = 0
+        new_artist_ids = set()
 
-        for i in range(0, n_new, BATCH_SIZE):
+        for i in range(0, n_new_tracks, BATCH_SIZE):
             batch = new_track_ids[i:i + BATCH_SIZE]
             batch_track_features, batch_artist_ids = collect_track_data(batch)
             if batch_track_features:
                 for track_features in batch_track_features:
-                    data_writer.writerow(track_features)
-                    id_writer.writerow([track_features['track_id']])
+                    track_data_writer.writerow(track_features)
+                    track_id_writer.writerow([track_features['track_id']])
                 processed_tracks += len(batch_track_features)
-                new_artist_ids = batch_artist_ids - known_artist_ids
-                if new_artist_ids:
-                    for artist_id in new_artist_ids:
-                        artist_writer.writerow([artist_id])
-                    n_new_artists += len(new_artist_ids)
-                    known_artist_ids.update(new_artist_ids)
+                batch_new_artist_ids = batch_artist_ids - known_artist_ids
+                if batch_new_artist_ids:
+                    for artist_id in batch_new_artist_ids:
+                        artist_id_writer.writerow([artist_id])
+                    new_artist_ids.update(batch_new_artist_ids)
+                    known_artist_ids.update(batch_new_artist_ids)
+
+    n_new_artists = len(new_artist_ids)
+
+    with open(ARTIST_FEATURES_FILE_PATH, mode='a', newline='', encoding='utf-8') as artist_data_file:
+        artist_data_writer = csv.DictWriter(artist_data_file, fieldnames=ARTIST_CSV_FIELDNAMES)
+
+        if n_artists == 0:
+            artist_data_writer.writeheader()
+
+        new_artist_ids = list(new_artist_ids)
+        for j in range(0, n_new_artists, BATCH_SIZE):
+            batch = new_artist_ids[j:j + BATCH_SIZE]
+            batch_artist_features = collect_artist_data(batch)
+            if batch_artist_features:
+                for artist_features in batch_artist_features:
+                    artist_data_writer.writerow(artist_features)
 
 
 if __name__ == '__main__':
