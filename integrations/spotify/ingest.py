@@ -2,11 +2,13 @@ import csv
 import os
 import time
 from pathlib import Path
+from typing import List, Optional
 
 import requests
 from dotenv import load_dotenv
 
 from integrations.spotify.auth import request_access_token
+from integrations.spotify.endpoint_fields import *
 
 load_dotenv()
 
@@ -16,9 +18,6 @@ TRACK_ID_FILE_PATH = root / 'data' / 'spotify_track_ids.csv'
 TRACK_FEATURES_FILE_PATH = root / 'data' / 'spotify_track_features.csv'
 DATASET_SIZE_THRESHOLD = 10
 SPOTIFY_WEB_API = 'https://api.spotify.com/v1/'
-TRACK_DATA_ENDPOINT = 'tracks/'
-AUDIO_FEATURES_ENDPOINT = 'audio-features/'
-AUDIO_ANALYSIS_ENDPOINT = 'audio-analysis/'
 
 
 def get_track_ids():
@@ -57,40 +56,29 @@ def call_spotify_endpoint(endpoint: str, track_id: str):
         ACCESS_HEADER = request_access_token()
         return call_spotify_endpoint(endpoint, track_id)
     elif response.status_code == 403:
-        print("Access forbidden. Check permissions and scope of access token.")
+        print(f'Access forbidden attempting to fetch {endpoint[:-1]} for track {track_id}. '
+              f'Check permissions and scope of access token.')
         return None
     else:
-        print(f"Failed to fetch audio features for track ID {track_id}")
+        print(f'Failed to fetch {endpoint[:-1]} for track: {track_id} due to unhandled response {response.status_code}')
         return None
 
 
-def collect_track_data(track_id: str) -> dict:
+def parse_track_responses(track_data, audio_features) -> dict:
+    return {}
+
+
+def collect_track_data(track_id: str) -> Optional[dict]:
     """
     Placeholder
     """
     track_data = call_spotify_endpoint(TRACK_DATA_ENDPOINT, track_id)
     audio_features = call_spotify_endpoint(AUDIO_FEATURES_ENDPOINT, track_id)
-    audio_analysis = call_spotify_endpoint(AUDIO_ANALYSIS_ENDPOINT, track_id)
-    if not track_data:
-        return {}
-    track_features = {
+    if not track_data and audio_features:
+        print(f'Missing data for {track_id}, skipping...')
+        return
+    track_features = parse_track_responses(track_data, audio_features)
 
-    }
-    if audio_features:
-        track_features.update({
-            'track_id': track_id,
-            'danceability': audio_features['danceability'],
-            'energy': audio_features['energy'],
-            'key': audio_features['key'],
-            'loudness': audio_features['loudness'],
-            'mode': audio_features['mode'],
-            'valence': audio_features['valence'],
-            'tempo': audio_features['tempo'],
-        })
-    if audio_analysis:
-        track_features.update({
-
-        })
     return track_features
 
 
