@@ -25,7 +25,7 @@ AUTH_URL = 'https://accounts.spotify.com/api/token'
 TOKEN_FILE_PATH = Path(os.getenv('PROJECT_ROOT', '.')) / 'spotify_token.json'
 
 
-def save_token(token: str, expires: datetime):
+def _save_token(token: str, expires: datetime):
     """
     Saves the access token and its expiration time to a JSON file in the project root
 
@@ -41,7 +41,7 @@ def save_token(token: str, expires: datetime):
         json.dump(data, f)
 
 
-def load_token() -> tuple:
+def _load_token() -> tuple:
     """
     Loads the access token and its expiration time from a JSON file
 
@@ -56,7 +56,7 @@ def load_token() -> tuple:
     return None, None
 
 
-def package_access_token(token: str) -> dict:
+def _package_access_token(token: str) -> dict:
     """
     Creates a dictionary containing the authorization headers required for Spotify API requests
 
@@ -82,9 +82,9 @@ def request_access_token() -> dict:
     Raises:
     - requests.RequestException: if there is an error making the request to the Spotify API.
     """
-    access_token, expires = load_token()
+    access_token, expires = _load_token()
     if access_token and expires and datetime.now() < (expires - timedelta(seconds=300)):
-        return package_access_token(access_token)
+        return _package_access_token(access_token)
 
     credentials = base64.b64encode(f'{os.getenv("CLIENT_ID")}: {os.getenv("CLIENT_SECRET")}'.encode()).decode()
     auth_headers = {
@@ -100,8 +100,8 @@ def request_access_token() -> dict:
         auth_response_json = auth_response.json()
         expires = datetime.now() + timedelta(seconds=auth_response_json['expires_in'])
         access_token = auth_response_json['access_token']
-        save_token(access_token, expires)
-        return package_access_token(access_token)
+        _save_token(access_token, expires)
+        return _package_access_token(access_token)
     except requests.RequestException as e:
         print(f"Error requesting access token: {e}")
         raise
