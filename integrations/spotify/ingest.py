@@ -2,7 +2,7 @@ import csv
 import os
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Set, Tuple
 
 import requests
 from dotenv import load_dotenv
@@ -15,6 +15,7 @@ load_dotenv()
 ACCESS_HEADER = None
 root = Path(os.getenv('PROJECT_ROOT', '.'))
 TRACK_ID_FILE_PATH = root / 'data' / 'spotify_track_ids.csv'
+ARTIST_ID_FILE_PATH = root / 'data' / 'spotify_artist_ids.csv'
 TRACK_FEATURES_FILE_PATH = root / 'data' / 'spotify_track_features.csv'
 DATASET_SIZE_THRESHOLD = 10
 BATCH_SIZE = 50
@@ -25,17 +26,20 @@ def get_track_ids():
             '4iZ4pt7kvcaH6Yo8UoZ4s2']
 
 
-def get_existing_track_ids() -> tuple:
+def get_existing_ids(file_path: Path) -> tuple:
     """
-    Reads existing track ids from the TRACK_ID_FILE_PATH and returns them in a tuple containing a set of track ids and
-    the integer number of tracks
+    Reads existing track or artist ids from specified path and returns them in a tuple containing a set of known ids and
+    the integer number of tracks or artists found
+
+    Arguments:
+    - file_path (Path): path representing a csv file containing track or artist ids
 
     Returns:
     - tuple: A tuple containing two elements, the set of track_id strings and the integer number of tracks in the file
     """
     seen_ids = set()
-    if os.path.exists(TRACK_ID_FILE_PATH):
-        with open(TRACK_ID_FILE_PATH, mode='r', newline='', encoding='utf-8') as id_file:
+    if os.path.exists(file_path):
+        with open(file_path, mode='r', newline='', encoding='utf-8') as id_file:
             reader = csv.reader(id_file)
             seen_ids = {line[0] for line in reader}
     return seen_ids, len(seen_ids)
@@ -68,29 +72,25 @@ def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0) -> Opt
         return None
 
 
-def parse_track_responses(track_data: dict, audio_features: dict) -> List[dict]:
+def parse_track_responses(track_data: dict, audio_features: dict) -> Tuple[List[dict], Set[str]]:
     batch_track_features = []
+    batch_artist_ids = set()
 
     for track, features in zip(track_data['tracks'], audio_features['audio_features']):
         track_features = {TRACK_DATA_FIELDS[field]: track.get(field) for field in TRACK_DATA_FIELDS}
-
         audio_data = {AUDIO_FEATURES_FIELDS[field]: features.get(field) for field in AUDIO_FEATURES_FIELDS}
         track_features.update(audio_data)
 
-        artists = []
-        for artist in track['artists']:
-            artist_data = {ARTIST_FIELDS[field]: artist.get(field) for field in ARTIST_FIELDS}
-            artist_data['artist_followers'] = artist.get('followers', {}).get('total', 0)
-            artists.append(artist_data)
-
-        track_features['artists'] = artists
+        artist_ids = [artist.get('id') for artist in track['artists']]
+        track_features['artist_ids'] = artist_ids
+        batch_artist_ids.update(set(artist_ids))
 
         batch_track_features.append(track_features)
 
-    return batch_track_features
+    return batch_track_features, batch_artist_ids
 
 
-def collect_track_data(batch: List[str]) -> Optional[list]:
+def collect_track_data(batch: List[str]) -> Tuple[Optional[List[dict]], Optional[Set[str]]]:
     """
     Placeholder
     """
@@ -99,17 +99,18 @@ def collect_track_data(batch: List[str]) -> Optional[list]:
     batch_audio_features = call_spotify_endpoint(AUDIO_FEATURES_ENDPOINT, track_ids)
     if not batch_track_data or not batch_audio_features:
         print('Did not receive suitable API response for processing. Skipping batch...')
-        return None
-    batch_track_features = parse_track_responses(batch_track_data, batch_audio_features)
+        return None, None
+    batch_track_features, new_artist_ids = parse_track_responses(batch_track_data, batch_audio_features)
 
-    return batch_track_features
+    return batch_track_features, new_artist_ids
 
 
 def main():
     global ACCESS_HEADER
     ACCESS_HEADER = request_access_token()
     track_ids = get_track_ids()
-    processed_ids, n_seen = get_existing_track_ids()
+    known_artist_ids, n_artists = get_existing_ids(ARTIST_ID_FILE_PATH)
+    processed_ids, n_seen = get_existing_ids(TRACK_ID_FILE_PATH)
     new_track_ids = [track for track in track_ids if track not in processed_ids]
     n_new = len(new_track_ids)
 
@@ -119,24 +120,33 @@ def main():
         return
 
     with (open(TRACK_ID_FILE_PATH, mode='a', newline='', encoding='utf-8') as id_file,
+          open(ARTIST_ID_FILE_PATH, mode='a', newline='', encoding='utf-8') as artist_file,
           open(TRACK_FEATURES_FILE_PATH, mode='a', newline='', encoding='utf-8') as data_file):
 
         id_writer = csv.writer(id_file)
+        artist_writer = csv.writer(artist_file)
         data_writer = csv.DictWriter(data_file, fieldnames=CSV_FIELDNAMES)
 
         if n_seen == 0:
             data_writer.writeheader()
 
         processed_tracks = 0
+        n_new_artists = 0
 
         for i in range(0, n_new, BATCH_SIZE):
             batch = new_track_ids[i:i + BATCH_SIZE]
-            batch_track_features = collect_track_data(batch)
+            batch_track_features, batch_artist_ids = collect_track_data(batch)
             if batch_track_features:
                 for track_features in batch_track_features:
                     data_writer.writerow(track_features)
                     id_writer.writerow([track_features['track_id']])
                 processed_tracks += len(batch_track_features)
+                new_artist_ids = batch_artist_ids - known_artist_ids
+                if new_artist_ids:
+                    for artist_id in new_artist_ids:
+                        artist_writer.writerow([artist_id])
+                    n_new_artists += len(new_artist_ids)
+                    known_artist_ids.update(new_artist_ids)
 
 
 if __name__ == '__main__':
