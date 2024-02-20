@@ -17,7 +17,7 @@ root = Path(os.getenv('PROJECT_ROOT', '.'))
 TRACK_ID_FILE_PATH = root / 'data' / 'spotify_track_ids.csv'
 TRACK_FEATURES_FILE_PATH = root / 'data' / 'spotify_track_features.csv'
 DATASET_SIZE_THRESHOLD = 10
-SPOTIFY_WEB_API = 'https://api.spotify.com/v1/'
+BATCH_SIZE = 50
 
 
 def get_track_ids():
@@ -40,10 +40,13 @@ def get_existing_track_ids() -> tuple:
     return seen_ids, len(seen_ids)
 
 
-def call_spotify_endpoint(endpoint: str, track_id: str):
+def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0) -> Optional[dict]:
     """Calls a Spotify endpoint for a given track or playlist ID and handles various HTTP responses."""
     global ACCESS_HEADER
-    url = SPOTIFY_WEB_API + endpoint + track_id
+    if calls > 3:
+        print(f"Maximum API call attempt limit reached")
+        return None
+    url = SPOTIFY_WEB_API + endpoint + spotify_id
     response = requests.get(url, headers=ACCESS_HEADER)
     if response.status_code == 200:
         return response.json()
@@ -51,16 +54,16 @@ def call_spotify_endpoint(endpoint: str, track_id: str):
         retry_after = int(response.headers.get('Retry-After', 1))
         print(f'Rate limit exceeded. Retrying after {retry_after} seconds.')
         time.sleep(retry_after)
-        return call_spotify_endpoint(endpoint, track_id)
+        return call_spotify_endpoint(endpoint, spotify_id, calls=calls + 1)
     elif response.status_code == 401:
         ACCESS_HEADER = request_access_token()
-        return call_spotify_endpoint(endpoint, track_id)
+        return call_spotify_endpoint(endpoint, spotify_id, calls=calls + 1)
     elif response.status_code == 403:
-        print(f'Access forbidden attempting to fetch {endpoint[:-1]} for track {track_id}. '
+        print(f'Access forbidden attempting to fetch {endpoint[:-5]} for track {spotify_id}. '
               f'Check permissions and scope of access token.')
         return None
     else:
-        print(f'Failed to fetch {endpoint[:-1]} for track: {track_id} due to unhandled response {response.status_code}')
+        print(f'Failed to fetch {endpoint[:-5]} for: {spotify_id} due to unhandled response {response.status_code}')
         return None
 
 
@@ -68,33 +71,33 @@ def parse_track_responses(track_data, audio_features) -> dict:
     return {}
 
 
-def collect_track_data(track_id: str) -> Optional[dict]:
+def collect_track_data(batch: List[str]) -> Optional[dict]:
     """
     Placeholder
     """
-    track_data = call_spotify_endpoint(TRACK_DATA_ENDPOINT, track_id)
-    audio_features = call_spotify_endpoint(AUDIO_FEATURES_ENDPOINT, track_id)
-    if not track_data and audio_features:
-        print(f'Missing data for {track_id}, skipping...')
-        return
-    track_features = parse_track_responses(track_data, audio_features)
+    track_ids = ','.join(batch)
+    batch_track_data = call_spotify_endpoint(TRACK_DATA_ENDPOINT, track_ids)
+    batch_audio_features = call_spotify_endpoint(AUDIO_FEATURES_ENDPOINT, track_ids)
+    if not batch_track_data or not batch_audio_features:
+        print('Did not receive suitable API response for processing. Skipping batch...')
+        return None
+    batch_track_features = parse_track_responses(batch_track_data, batch_audio_features)
 
-    return track_features
+    return batch_track_features
 
 
 def main():
     global ACCESS_HEADER
     ACCESS_HEADER = request_access_token()
     track_ids = get_track_ids()
-    processed_ids, n = get_existing_track_ids()
+    processed_ids, n_seen = get_existing_track_ids()
     new_track_ids = [track for track in track_ids if track not in processed_ids]
+    n_new = len(new_track_ids)
 
-    if len(new_track_ids) + n >= DATASET_SIZE_THRESHOLD:
-        print(f'Attempting to add {len(new_track_ids)} tracks, which will exceed threshold {DATASET_SIZE_THRESHOLD}. '
-              f'Increase threshold to ingest.\nCancelling ingest.)')
+    if n_new + n_seen >= DATASET_SIZE_THRESHOLD:
+        print(f'Attempting to add {n_new} tracks, which will exceed threshold {DATASET_SIZE_THRESHOLD}. '
+              f'Increase threshold to try again.\nCancelling ingest.)')
         return
-
-    track_counter = 0
 
     with (open(TRACK_ID_FILE_PATH, mode='a', newline='', encoding='utf-8') as id_file,
           open(TRACK_FEATURES_FILE_PATH, mode='a', newline='', encoding='utf-8') as data_file):
@@ -102,15 +105,23 @@ def main():
         id_writer = csv.writer(id_file)
         data_writer = csv.DictWriter(data_file)
 
-        if n == 0:
+        if n_seen == 0:
             data_writer.writeheader()
 
+        n_batch_tracks = (n_new // BATCH_SIZE) * BATCH_SIZE
+        track_counter, batch_counter, processed_tracks = 0, 0, 0
+        batch = []
         for track_id in new_track_ids:
-            track_features = collect_track_data(track_id)
-            if track_features:
-                data_writer.writerow(track_features)
-                id_writer.writerow([track_id])
-                track_counter += 1
+            track_counter += 1
+            batch_counter += 1
+            batch.append(track_id)
+            if track_counter > n_batch_tracks or len(batch) == BATCH_SIZE:
+                batch_track_features = collect_track_data(batch)
+                if batch_track_features:
+                    for track_features in track_features:
+                        data_writer.writerow(track_features)
+                        id_writer.writerow([track_features['id']])
+                    processed_tracks += len(batch_track_features)
 
 
 if __name__ == '__main__':
