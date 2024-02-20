@@ -24,6 +24,13 @@ def get_track_ids():
 
 
 def get_existing_track_ids() -> tuple:
+    """
+    Reads existing track ids from the TRACK_ID_FILE_PATH and returns them in a tuple containing a set of track ids and
+    the integer number of tracks
+
+    Returns:
+    - tuple: A tuple containing two elements, the set of track_id strings and the integer number of tracks in the file
+    """
     seen_ids = set()
     num_seen = 0
     if os.path.exists(TRACK_ID_FILE_PATH):
@@ -85,7 +92,7 @@ def main():
     processed_ids, n = get_existing_track_ids()
 
     if n >= DATASET_SIZE_THRESHOLD:
-        print(f'Dataset size of {n} equals or exceeds threshold {DATASET_SIZE_THRESHOLD}. Increase threshold to ingest. '
+        print(f'Dataset size of {n} equals or exceeds threshold {DATASET_SIZE_THRESHOLD}. Increase threshold to ingest.'
               f'\nCancelling...)')
         return
 
