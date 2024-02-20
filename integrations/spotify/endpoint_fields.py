@@ -30,4 +30,4 @@ AUDIO_FEATURES_FIELDS = {
     'valence': 'valence'
 }
 
-CSV_FIELDNAMES = list(TRACK_DATA_FIELDS) + ['artists'] + list(AUDIO_FEATURES_FIELDS.keys())
+CSV_FIELDNAMES = list(TRACK_DATA_FIELDS.values()) + ['artists'] + list(AUDIO_FEATURES_FIELDS.values())

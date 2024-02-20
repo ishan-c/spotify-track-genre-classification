@@ -135,7 +135,7 @@ def main():
             if batch_track_features:
                 for track_features in batch_track_features:
                     data_writer.writerow(track_features)
-                    id_writer.writerow([track_features['id']])
+                    id_writer.writerow([track_features['track_id']])
                 processed_tracks += len(batch_track_features)
 
 
