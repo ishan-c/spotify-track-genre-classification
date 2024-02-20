@@ -1,5 +1,6 @@
 import csv
 import os
+import time
 from pathlib import Path
 
 import requests
@@ -9,6 +10,7 @@ from integrations.spotify.auth import request_access_token
 
 load_dotenv()
 
+ACCESS_HEADER = None
 root = Path(os.getenv('PROJECT_ROOT', '.'))
 TRACK_ID_FILE_PATH = root / 'data' / 'spotify_track_ids.csv'
 TRACK_FEATURES_FILE_PATH = root / 'data' / 'spotify_track_features.csv'
@@ -39,33 +41,41 @@ def get_existing_track_ids() -> tuple:
     return seen_ids, len(seen_ids)
 
 
-def call_spotify_endpoint(endpoint: str, track_id: str, access_header: dict):
-    """Fetches audio features for a given track ID."""
+def call_spotify_endpoint(endpoint: str, track_id: str):
+    """Calls a Spotify endpoint for a given track or playlist ID and handles various HTTP responses."""
+    global ACCESS_HEADER
     url = SPOTIFY_WEB_API + endpoint + track_id
-    response = requests.get(url, headers=access_header)
+    response = requests.get(url, headers=ACCESS_HEADER)
     if response.status_code == 200:
         return response.json()
     elif response.status_code == 429:
-        pass
+        retry_after = int(response.headers.get('Retry-After', 1))
+        print(f'Rate limit exceeded. Retrying after {retry_after} seconds.')
+        time.sleep(retry_after)
+        return call_spotify_endpoint(endpoint, track_id)
     elif response.status_code == 401:
-        pass
+        ACCESS_HEADER = request_access_token()
+        return call_spotify_endpoint(endpoint, track_id)
     elif response.status_code == 403:
-        pass
+        print("Access forbidden. Check permissions and scope of access token.")
+        return None
     else:
         print(f"Failed to fetch audio features for track ID {track_id}")
         return None
 
 
-def collect_track_data(track_id: str, access_header: dict):
+def collect_track_data(track_id: str) -> dict:
     """
     Placeholder
     """
-    track_data = call_spotify_endpoint(TRACK_DATA_ENDPOINT, track_id, access_header)
-    audio_features = call_spotify_endpoint(AUDIO_FEATURES_ENDPOINT, track_id, access_header)
-    audio_analysis = call_spotify_endpoint(AUDIO_ANALYSIS_ENDPOINT, track_id, access_header)
-    track_features = {}
-    if track_data:
-        track_features = {}
+    track_data = call_spotify_endpoint(TRACK_DATA_ENDPOINT, track_id)
+    audio_features = call_spotify_endpoint(AUDIO_FEATURES_ENDPOINT, track_id)
+    audio_analysis = call_spotify_endpoint(AUDIO_ANALYSIS_ENDPOINT, track_id)
+    if not track_data:
+        return {}
+    track_features = {
+
+    }
     if audio_features:
         track_features.update({
             'track_id': track_id,
@@ -85,7 +95,8 @@ def collect_track_data(track_id: str, access_header: dict):
 
 
 def main():
-    access_header = request_access_token()
+    global ACCESS_HEADER
+    ACCESS_HEADER = request_access_token()
     track_ids = get_track_ids()
     processed_ids, n = get_existing_track_ids()
     new_track_ids = [track for track in track_ids if track not in processed_ids]
@@ -107,7 +118,7 @@ def main():
             data_writer.writeheader()
 
         for track_id in new_track_ids:
-            track_features = collect_track_data(track_id, access_header)
+            track_features = collect_track_data(track_id)
             if track_features:
                 data_writer.writerow(track_features)
                 id_writer.writerow([track_id])
