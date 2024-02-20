@@ -67,8 +67,22 @@ def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0) -> Opt
         return None
 
 
-def parse_track_responses(track_data, audio_features) -> dict:
-    return {}
+def parse_track_responses(track_data: dict, audio_features: dict) -> []:
+    batch_track_features = []
+
+    for track, features in zip(track_data['tracks'], audio_features['audio_features']):
+        track_features = {TRACK_DATA_FIELDS[field]: track[field] for field in TRACK_DATA_FIELDS}
+
+        audio_data = {AUDIO_FEATURES_FIELDS[field]: features[field] for field in AUDIO_FEATURES_FIELDS}
+        track_features.update(audio_data)
+
+        artist_data = {}
+        for artist in track['artists']:
+            pass
+
+        batch_track_features.append(track_features)
+
+    return batch_track_features
 
 
 def collect_track_data(batch: List[str]) -> Optional[dict]:
@@ -118,7 +132,7 @@ def main():
             if track_counter > n_batch_tracks or len(batch) == BATCH_SIZE:
                 batch_track_features = collect_track_data(batch)
                 if batch_track_features:
-                    for track_features in track_features:
+                    for track_features in batch_track_features:
                         data_writer.writerow(track_features)
                         id_writer.writerow([track_features['id']])
                     processed_tracks += len(batch_track_features)
