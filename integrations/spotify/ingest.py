@@ -21,7 +21,8 @@ BATCH_SIZE = 50
 
 
 def get_track_ids():
-    return []
+    return ['3rUGC1vUpkDG9CZFHMur1t', '6Qb7YsAqH4wWFUMbGsCpap', '7gaA3wERFkFkgivjwbSvkG', '17phhZDn6oGtzMe56NuWvj',
+            '4iZ4pt7kvcaH6Yo8UoZ4s2']
 
 
 def get_existing_track_ids() -> tuple:
@@ -121,7 +122,7 @@ def main():
           open(TRACK_FEATURES_FILE_PATH, mode='a', newline='', encoding='utf-8') as data_file):
 
         id_writer = csv.writer(id_file)
-        data_writer = csv.DictWriter(data_file)
+        data_writer = csv.DictWriter(data_file, fieldnames=CSV_FIELDNAMES)
 
         if n_seen == 0:
             data_writer.writeheader()

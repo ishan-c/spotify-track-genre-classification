@@ -14,10 +14,6 @@ ARTIST_FIELDS = {
     'popularity': 'artist_popularity'
 }
 
-FOLLOWERS_FIELDS = {
-    'total': 'artist_followers'
-}
-
 AUDIO_FEATURES_ENDPOINT = 'audio-features?ids='
 AUDIO_FEATURES_FIELDS = {
     'acousticness': 'acousticness',
@@ -33,3 +29,5 @@ AUDIO_FEATURES_FIELDS = {
     'time_signature': 'time_signature',
     'valence': 'valence'
 }
+
+CSV_FIELDNAMES = list(TRACK_DATA_FIELDS) + ['artists'] + list(AUDIO_FEATURES_FIELDS.keys())
