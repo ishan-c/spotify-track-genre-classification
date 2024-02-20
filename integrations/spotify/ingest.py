@@ -67,25 +67,29 @@ def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0) -> Opt
         return None
 
 
-def parse_track_responses(track_data: dict, audio_features: dict) -> []:
+def parse_track_responses(track_data: dict, audio_features: dict) -> List[dict]:
     batch_track_features = []
 
     for track, features in zip(track_data['tracks'], audio_features['audio_features']):
-        track_features = {TRACK_DATA_FIELDS[field]: track[field] for field in TRACK_DATA_FIELDS}
+        track_features = {TRACK_DATA_FIELDS[field]: track.get(field) for field in TRACK_DATA_FIELDS}
 
-        audio_data = {AUDIO_FEATURES_FIELDS[field]: features[field] for field in AUDIO_FEATURES_FIELDS}
+        audio_data = {AUDIO_FEATURES_FIELDS[field]: features.get(field) for field in AUDIO_FEATURES_FIELDS}
         track_features.update(audio_data)
 
-        artist_data = {}
+        artists = []
         for artist in track['artists']:
-            pass
+            artist_data = {ARTIST_FIELDS[field]: artist.get(field) for field in ARTIST_FIELDS}
+            artist_data['artist_followers'] = artist.get('followers', {}).get('total', 0)
+            artists.append(artist_data)
+
+        track_features['artists'] = artists
 
         batch_track_features.append(track_features)
 
     return batch_track_features
 
 
-def collect_track_data(batch: List[str]) -> Optional[dict]:
+def collect_track_data(batch: List[str]) -> Optional[list]:
     """
     Placeholder
     """
@@ -122,20 +126,16 @@ def main():
         if n_seen == 0:
             data_writer.writeheader()
 
-        n_batch_tracks = (n_new // BATCH_SIZE) * BATCH_SIZE
-        track_counter, batch_counter, processed_tracks = 0, 0, 0
-        batch = []
-        for track_id in new_track_ids:
-            track_counter += 1
-            batch_counter += 1
-            batch.append(track_id)
-            if track_counter > n_batch_tracks or len(batch) == BATCH_SIZE:
-                batch_track_features = collect_track_data(batch)
-                if batch_track_features:
-                    for track_features in batch_track_features:
-                        data_writer.writerow(track_features)
-                        id_writer.writerow([track_features['id']])
-                    processed_tracks += len(batch_track_features)
+        processed_tracks = 0
+
+        for i in range(0, n_new, BATCH_SIZE):
+            batch = new_track_ids[i:i + BATCH_SIZE]
+            batch_track_features = collect_track_data(batch)
+            if batch_track_features:
+                for track_features in batch_track_features:
+                    data_writer.writerow(track_features)
+                    id_writer.writerow([track_features['id']])
+                processed_tracks += len(batch_track_features)
 
 
 if __name__ == '__main__':

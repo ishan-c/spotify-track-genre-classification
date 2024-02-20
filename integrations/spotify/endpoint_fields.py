@@ -5,7 +5,7 @@ TRACK_DATA_FIELDS = {
     'id': 'track_id',
     'duration_ms': 'duration_ms',
     'name': 'track_name',
-    'popularity': 'track_populatiry'
+    'popularity': 'track_popularity'
 }
 ARTIST_FIELDS = {
     'genres': 'artist_genres',
