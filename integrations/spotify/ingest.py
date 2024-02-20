@@ -32,13 +32,11 @@ def get_existing_track_ids() -> tuple:
     - tuple: A tuple containing two elements, the set of track_id strings and the integer number of tracks in the file
     """
     seen_ids = set()
-    num_seen = 0
     if os.path.exists(TRACK_ID_FILE_PATH):
-        with open(TRACK_ID_FILE_PATH, mode='r') as id_file:
+        with open(TRACK_ID_FILE_PATH, mode='r', newline='', encoding='utf-8') as id_file:
             reader = csv.reader(id_file)
-            seen_ids = {track for track in reader}
-        num_seen = len(seen_ids)
-    return seen_ids, num_seen
+            seen_ids = {line[0] for line in reader}
+    return seen_ids, len(seen_ids)
 
 
 def call_spotify_endpoint(endpoint: str, track_id: str, access_header: dict):
@@ -90,27 +88,30 @@ def main():
     access_header = request_access_token()
     track_ids = get_track_ids()
     processed_ids, n = get_existing_track_ids()
+    new_track_ids = [track for track in track_ids if track not in processed_ids]
 
-    if n >= DATASET_SIZE_THRESHOLD:
-        print(f'Dataset size of {n} equals or exceeds threshold {DATASET_SIZE_THRESHOLD}. Increase threshold to ingest.'
-              f'\nCancelling...)')
+    if len(new_track_ids) + n >= DATASET_SIZE_THRESHOLD:
+        print(f'Attempting to add {len(new_track_ids)} tracks, which will exceed threshold {DATASET_SIZE_THRESHOLD}. '
+              f'Increase threshold to ingest.\nCancelling ingest.)')
         return
 
-    new_track_ids = [track for track in track_ids if track not in processed_ids]
     track_counter = 0
 
-    with (open(TRACK_ID_FILE_PATH, mode='w') as id_file,
-          open(TRACK_FEATURES_FILE_PATH, mode='w', newline='', encoding='utf-8') as data_file):
+    with (open(TRACK_ID_FILE_PATH, mode='a', newline='', encoding='utf-8') as id_file,
+          open(TRACK_FEATURES_FILE_PATH, mode='a', newline='', encoding='utf-8') as data_file):
 
         id_writer = csv.writer(id_file)
         data_writer = csv.DictWriter(data_file)
-        data_writer.writeheader()
+
+        if n == 0:
+            data_writer.writeheader()
 
         for track_id in new_track_ids:
             track_features = collect_track_data(track_id, access_header)
-            data_writer.writerow(track_features)
-            id_writer.writerow(track_id)
-            track_counter += 1
+            if track_features:
+                data_writer.writerow(track_features)
+                id_writer.writerow([track_id])
+                track_counter += 1
 
 
 if __name__ == '__main__':
