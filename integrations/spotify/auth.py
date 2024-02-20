@@ -86,7 +86,7 @@ def request_access_token() -> dict:
     if access_token and expires and datetime.now() < (expires - timedelta(seconds=300)):
         return _package_access_token(access_token)
 
-    credentials = base64.b64encode(f'{os.getenv("CLIENT_ID")}: {os.getenv("CLIENT_SECRET")}'.encode()).decode()
+    credentials = base64.b64encode(f'{os.getenv("CLIENT_ID")}:{os.getenv("CLIENT_SECRET")}'.encode()).decode()
     auth_headers = {
         'Authorization': f'Basic {credentials}',
         'Content-Type': 'application/x-www-form-urlencoded'
