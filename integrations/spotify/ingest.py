@@ -382,7 +382,7 @@ def main():
 
     n_new_artists = len(new_artist_ids)
     log.info(f"[{get_time()}] Successfully added {processed_tracks} new tracks to dataset. Found {n_new_artists} new "
-             f"artists.\nPopulating artist data...")
+             f"artists.\n[{get_time()}] Populating artist data...")
 
     with open(ARTIST_FEATURES_FILE_PATH, mode='a', newline='', encoding='utf-8') as artist_data_file:
         artist_data_writer = csv.DictWriter(artist_data_file, fieldnames=ARTIST_CSV_FIELDNAMES)
