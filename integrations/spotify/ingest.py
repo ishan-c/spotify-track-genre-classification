@@ -1,3 +1,40 @@
+"""
+Spotify Data Ingestion Script
+
+This script automates the process of collecting and processing data from the Spotify API, focusing on tracks and their
+associated artists. It is designed to fetch track metadata, audio features, and artist details in batches, optimizing
+API call efficiency and handling common issues like rate limiting and authentication token expiration.
+
+Features include:
+- Batch fetching of track data and audio features using a list of track IDs.
+- Collection of unique artist IDs from tracks and subsequent batch fetching of detailed artist information.
+- Robust error handling to gracefully manage rate limiting (429 errors), access token expiration (401 errors),
+  and other potential API response issues.
+- Logging of key events and warnings to facilitate monitoring and troubleshooting of the data ingestion process.
+- Structured storage of fetched data into CSV files, including a separate file for track features, artist IDs, and
+  artist features.
+
+The script organizes data collection into three main phases:
+1. Playlist Iteration: Retrieves track ids from a list of playlist ids provided in a flat file
+2. Track Data Collection: Retrieves track metadata and audio features, logging and skipping over tracks with no response
+3. Artist Data Enrichment: Uses collected artist IDs to fetch and store additional artist information
+
+Usage:
+The script is executed with a `main` function call, which initiates the data ingestion process. It requires a valid
+Spotify API client ID and client secret, which should be provided via environment variables or a configuration file.
+
+Components:
+- `main`: Orchestrates the data ingestion workflow, managing file operations and the overall sequence of API calls.
+- `get_track_ids`: Reads a list of playlist ids and creates a list of track ids to attempt importing
+- `collect_track_data`: Fetches data for a batch of tracks and parses the response.
+- `collect_artist_data`: Fetches detailed information for a batch of artists and parses the response.
+- `parse_track_responses`: Processes API responses for track data, combining metadata with audio features.
+- `parse_artist_responses`: Processes API responses for artist data, structuring the information for further analysis.
+- Various helper functions to support the main data collection tasks.
+
+This script is a practical application of interacting with the Spotify API to build a dataset for music analysis,
+demonstrating batch processing, error handling, and data structuring techniques.
+"""
 import csv
 import logging.handlers
 import os
@@ -36,6 +73,12 @@ BATCH_SIZE = 50
 
 
 def get_time() -> str:
+    """
+    Utility for docstrings
+
+    Returns:
+    - str: current time as a formatted string
+    """
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -53,7 +96,8 @@ def get_existing_ids(file_path: Path) -> Tuple[Set, int]:
     - file_path (Path): path of a csv file containing one Spotify track or artist id string per row
 
     Returns:
-    - tuple: A tuple containing two elements, the set of track_id strings and the integer number of tracks in the file
+    - tuple: A tuple containing two elements, the set of track or artist id strings and the integer number of
+             tracks/artists in the file
     """
     seen_ids = set()
     if os.path.exists(file_path):
@@ -64,7 +108,25 @@ def get_existing_ids(file_path: Path) -> Tuple[Set, int]:
 
 
 def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0) -> Optional[dict]:
-    """Calls a Spotify endpoint for a given track or playlist ID and handles various HTTP responses."""
+    """
+    Makes a request to a Spotify API endpoint for a given Spotify ID payload, handling retries and common HTTP errors.
+
+    This function is designed to handle each potential response outlined in the Spotify Web API reference, including
+    rate limiting (HTTP 429), access token expiration (HTTP 401), and forbidden access (HTTP 403). It implements
+    automatic retries for rate limiting and token expiration, with a maximum limit on retry attempts.
+
+    Parameters:
+    - endpoint (str): The Spotify API endpoint to be called.
+    - spotify_id (str): The unique identifier for the track, artist, or other Spotify entity.
+    - calls (int): A counter tracking the number of API call attempts made for this request, used to limit retries.
+
+    Returns:
+    - dict: The dictionary JSON response from the Spotify API if the request is successful; otherwise, None.
+
+    The function logs warnings for rate limiting and errors, and retries the request after a delay specified by the
+    Spotify API when rate limited. For access token issues, it refreshes the token and retries the request. If the
+    maximum number of retries is exceeded or an unhandled HTTP status code is received, the function returns None.
+    """
     global ACCESS_HEADER
     if calls > 3:
         log.warning(f'[{get_time()}] Maximum API call attempt limit reached.')
@@ -92,6 +154,26 @@ def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0) -> Opt
 
 
 def parse_track_responses(track_data: dict, audio_features: dict) -> Tuple[List[dict], Set[str]]:
+    """
+    Parses track data and audio features from Spotify's API responses into a structured format.
+
+    This function combines information from two separate API responses: track metadata and audio features,
+    merging them into a list of dictionaries, each representing a track with its associated features.
+    Additionally, it collects and returns a set of unique artist IDs found across all tracks processed in the batch.
+
+    Parameters:
+    - track_data (dict): The JSON response from the Spotify API containing track metadata.
+    - audio_features (dict): The JSON response from the Spotify API containing audio features for the tracks.
+
+    Returns:
+    - tuple: A two-element tuple containing:
+        - A list of dictionaries, where each dictionary contains merged metadata and audio features for a single track.
+        - A set of unique artist IDs associated with the tracks processed in this batch.
+
+    Each track dictionary includes fields specified in `TRACK_DATA_FIELDS` and `AUDIO_FEATURES_FIELDS`, along
+    with a list of artist IDs under the key 'artist_ids'. This function ensures that data from both responses
+    are aligned and combined based on the track IDs.
+    """
     batch_track_features = []
     batch_artist_ids = set()
 
@@ -111,7 +193,22 @@ def parse_track_responses(track_data: dict, audio_features: dict) -> Tuple[List[
 
 def collect_track_data(batch: List[str]) -> Tuple[Optional[List[dict]], Optional[Set[str]]]:
     """
-    Placeholder
+    Fetches and processes a batch of track IDs to collect track data and audio features from the Spotify API.
+
+    This function makes calls to the Spotify API to fetch data for a list of track IDs, including track metadata
+    and audio features. It then parses the responses to structure the data into a list of dictionaries, each representing
+    a track, and collects a set of artist IDs associated with those tracks.
+
+    Parameters:
+    - batch (list): A list of Spotify track IDs to be processed.
+
+    Returns:
+    - tuple: a two-element tuple containing the following:
+        - A list of dictionaries with combined track data and audio features, or None if the API response is inadequate.
+        - A set of unique artist IDs found within the batch of tracks, or None if the API response is inadequate.
+
+    The function logs a warning and returns None for both elements of the tuple if it fails to receive valid responses
+    from the Spotify API for either track data or audio features.
     """
     track_ids = ','.join(batch)
     batch_track_data = call_spotify_endpoint(TRACK_DATA_ENDPOINT, track_ids)
@@ -125,6 +222,23 @@ def collect_track_data(batch: List[str]) -> Tuple[Optional[List[dict]], Optional
 
 
 def parse_artist_responses(artist_data: dict) -> List[dict]:
+    """
+    Parses artist data from Spotify's API response into a structured format.
+
+    This function transforms the JSON response containing artist details into a list of dictionaries,
+    each representing an artist with selected fields specified in `ARTIST_FIELDS`. It includes the artist's
+    follower count, extracted from a nested structure within the response data.
+
+    Parameters:
+    - artist_data (dict): The JSON response from the Spotify API containing details for multiple artists.
+
+    Returns:
+    - list: A list of dictionaries, each containing fields for an artist as specified by `ARTIST_FIELDS`,
+      along with the artist's follower count under the key 'artist_followers'.
+
+    The function focuses on extracting relevant information to facilitate the analysis of artist popularity
+    and other attributes by providing a clean, flat structure for each artist's data.
+    """
     batch_artist_features = []
     for artist in artist_data['artists']:
         artist_features = {ARTIST_FIELDS[field]: artist.get(field) for field in ARTIST_FIELDS}
@@ -136,6 +250,23 @@ def parse_artist_responses(artist_data: dict) -> List[dict]:
 
 
 def collect_artist_data(batch: list[str]) -> Optional[List[dict]]:
+    """
+    Fetches and processes a batch of artist IDs to collect detailed artist information from the Spotify API.
+
+    This function makes a call to the Spotify API to fetch detailed information for a list of artist IDs. It
+    parses the response to structure the data into a list of dictionaries, each representing an artist with
+    selected fields of interest.
+
+    Parameters:
+    - batch (list): A list of Spotify artist IDs to be processed.
+
+    Returns:
+    - list: A list of dictionaries with artist data, or None if the API response is inadequate.
+
+    The function logs a warning and returns None if it fails to receive a valid response from the Spotify API.
+    This ensures that the data collection process can gracefully handle and log API-related issues without interrupting
+    the broader data ingest workflow.
+    """
     artist_ids = ','.join(batch)
     batch_artist_data = call_spotify_endpoint(ARTIST_DATA_ENDPOINT, artist_ids)
     if not batch_artist_data:
