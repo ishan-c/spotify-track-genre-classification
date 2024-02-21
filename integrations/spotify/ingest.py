@@ -121,50 +121,48 @@ def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0, url: s
         ACCESS_HEADER = request_access_token()
         return call_spotify_endpoint(endpoint, spotify_id, calls=calls + 1, url=url)
     elif response.status_code == 403:
-        log.warning(f'[{get_time()}] Access forbidden attempting to fetch {endpoint} for track {spotify_id}. '
+        log.warning(f'[{get_time()}] Access forbidden attempting to fetch from endpoint {endpoint} for id {spotify_id}.'
                     f'Check permissions and scope of access token.')
         return None
+    elif response.status_code == 404:
+        log.warning(f'[{get_time()}] Entity not found accessing {endpoint} for id {spotify_id}. Recheck URL and ID.')
+        return None
     else:
-        log.warning(f'[{get_time()}] Failed to fetch {endpoint} for: {spotify_id} due to unhandled response: '
+        log.warning(f'[{get_time()}] Failed to access {endpoint} for id {spotify_id} due to unhandled response: '
                     f'{response.status_code}')
         return None
 
 
-def parse_playlist_data():
-    pass
-
-
 def get_track_ids() -> Optional[List[str]]:
     """
-    Accesses a fixed playlist ids file and calls the spotify API in order to yield the track ids of every track in each
+    Accesses a fixed playlist ids file and calls the Spotify API in order to yield the track ids of every track in each
     playlist
 
     Returns:
          track_ids (list) - list of strings representing Spotify track ids found each of the playlists
     """
 
-    if os.path.exists(PLAYLIST_IDS_FILE_PATH):
+    if not os.path.exists(PLAYLIST_IDS_FILE_PATH):
+        log.error(f'[{get_time()}] No playlists IDS found at path: {PLAYLIST_IDS_FILE_PATH}')
+        return None
 
-        with open(PLAYLIST_IDS_FILE_PATH, mode='r', newline='', encoding='utf-8') as playlist_file:
-            reader = csv.reader(playlist_file)
-            playlist_ids = {line[0] for line in reader}
+    with open(PLAYLIST_IDS_FILE_PATH, mode='r', newline='', encoding='utf-8-sig') as playlist_file:
+        reader = csv.reader(playlist_file)
+        playlist_ids = {line[0] for line in reader}
 
-        track_ids = []
-        for playlist_id in playlist_ids:
-            url = SPOTIFY_WEB_API + PLAYLIST_ENDPOINT + playlist_id + '/tracks&limit=50'
-            playlist_data = call_spotify_endpoint(PLAYLIST_ENDPOINT, playlist_id, calls=0, url=url)
+    track_ids = []
+    for playlist_id in playlist_ids:
+        next_url = SPOTIFY_WEB_API + PLAYLIST_ENDPOINT + playlist_id + '/tracks?limit=50'
+        while next_url:
+            playlist_data = call_spotify_endpoint(PLAYLIST_ENDPOINT, playlist_id, calls=0, url=next_url)
             if not playlist_data:
                 log.warning(f'[{get_time()}] Did not receive suitable API response for playlist {playlist_id}. '
                             f'Skipping...')
-                continue
-            for item in playlist_data['items']:
-                track_ids.append(item['track'].get('id', ''))
-            if playlist_data['next'] is not None:
-                pass
+                break
+            track_ids.extend([item['track']['id'] for item in playlist_data['items']])
+            next_url = playlist_data['next']
 
-        return []
-
-    return None
+    return track_ids
 
 
 def get_existing_ids(file_path: Path) -> Tuple[Set, int]:
