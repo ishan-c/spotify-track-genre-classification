@@ -215,6 +215,12 @@ def parse_track_responses(track_data: dict, audio_features: dict) -> Tuple[List[
     batch_artist_ids = set()
 
     for track, features in zip(track_data['tracks'], audio_features['audio_features']):
+        if not features:
+            log.warning(f'[{get_time()}] Skipping track: {track.get("id")}, unable to get audio data.')
+            continue
+        if track.get("id") != features.get("id"):
+            log.warning(f'[{get_time()}] Skipping track: {track.get("id")}, mismatch between track and audio data.')
+            continue
         track_features = {TRACK_DATA_FIELDS[field]: track.get(field) for field in TRACK_DATA_FIELDS}
         audio_data = {AUDIO_FEATURES_FIELDS[field]: features.get(field) for field in AUDIO_FEATURES_FIELDS}
         track_features.update(audio_data)
@@ -278,6 +284,9 @@ def parse_artist_responses(artist_data: dict) -> List[dict]:
     """
     batch_artist_features = []
     for artist in artist_data['artists']:
+        # if not artist:
+        #     log.warning(f'[{get_time()}] Skipping track: {artist.get("id")}, unable to retrieve data.')
+        #     continue
         artist_features = {ARTIST_FIELDS[field]: artist.get(field) for field in ARTIST_FIELDS}
         artist_features['artist_followers'] = artist.get('followers', {}).get('total', 0)
 
