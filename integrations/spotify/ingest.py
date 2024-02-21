@@ -39,7 +39,7 @@ import csv
 import logging.handlers
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
@@ -69,7 +69,8 @@ TRACK_ID_FILE_PATH = root / 'data' / 'spotify_track_ids.csv'
 ARTIST_ID_FILE_PATH = root / 'data' / 'spotify_artist_ids.csv'
 TRACK_FEATURES_FILE_PATH = root / 'data' / 'spotify_track_features.csv'
 ARTIST_FEATURES_FILE_PATH = root / 'data' / 'spotify_artist_features.csv'
-DATASET_SIZE_THRESHOLD = 10
+LAST_API_CALL = datetime.now()
+DATASET_SIZE_THRESHOLD = 101
 BATCH_SIZE = 50
 
 
@@ -103,12 +104,15 @@ def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0, url: s
     Spotify API when rate limited. For access token issues, it refreshes the token and retries the request. If the
     maximum number of retries is exceeded or an unhandled HTTP status code is received, the function returns None.
     """
-    global ACCESS_HEADER
+    global ACCESS_HEADER, LAST_API_CALL
     if calls > 3:
         log.warning(f'[{get_time()}] Maximum API call attempt limit reached.')
         return None
     if not url:
         url = SPOTIFY_WEB_API + endpoint + spotify_id
+    if datetime.now() < LAST_API_CALL + timedelta(seconds=1):
+        time.sleep(1)
+    LAST_API_CALL = datetime.now()
     response = requests.get(url, headers=ACCESS_HEADER)
     if response.status_code == 200:
         return response.json()
@@ -136,7 +140,7 @@ def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0, url: s
 def get_track_ids() -> Optional[List[str]]:
     """
     Accesses a fixed playlist ids file and calls the Spotify API in order to yield the track ids of every track in each
-    playlist
+    playlist, automatically handling pagination using the API response to ensure all tracks are retrieved.
 
     Returns:
          track_ids (list) - list of strings representing Spotify track ids found each of the playlists
