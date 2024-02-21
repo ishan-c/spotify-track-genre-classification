@@ -70,7 +70,7 @@ ARTIST_ID_FILE_PATH = root / 'data' / 'spotify_artist_ids.csv'
 TRACK_FEATURES_FILE_PATH = root / 'data' / 'spotify_track_features.csv'
 ARTIST_FEATURES_FILE_PATH = root / 'data' / 'spotify_artist_features.csv'
 LAST_API_CALL = datetime.now()
-DATASET_SIZE_THRESHOLD = 101
+DATASET_SIZE_THRESHOLD = 50000
 BATCH_SIZE = 50
 
 
@@ -156,6 +156,7 @@ def get_track_ids() -> Optional[List[str]]:
 
     track_ids = []
     for playlist_id in playlist_ids:
+        log.debug(f"[{get_time()}] Collecting track ids for playlist id: {playlist_id}")
         next_url = SPOTIFY_WEB_API + PLAYLIST_ENDPOINT + playlist_id + '/tracks?limit=50'
         while next_url:
             playlist_data = call_spotify_endpoint(PLAYLIST_ENDPOINT, playlist_id, calls=0, url=next_url)
