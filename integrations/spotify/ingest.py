@@ -67,7 +67,7 @@ def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0) -> Opt
     """Calls a Spotify endpoint for a given track or playlist ID and handles various HTTP responses."""
     global ACCESS_HEADER
     if calls > 3:
-        log.info(f'[{get_time()}] Maximum API call attempt limit reached.')
+        log.warning(f'[{get_time()}] Maximum API call attempt limit reached.')
         return None
     url = SPOTIFY_WEB_API + endpoint + spotify_id
     response = requests.get(url, headers=ACCESS_HEADER)
@@ -82,12 +82,12 @@ def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0) -> Opt
         ACCESS_HEADER = request_access_token()
         return call_spotify_endpoint(endpoint, spotify_id, calls=calls + 1)
     elif response.status_code == 403:
-        log.info(f'[{get_time()}] Access forbidden attempting to fetch {endpoint[:-5]} for track {spotify_id}. '
-                 f'Check permissions and scope of access token.')
+        log.warning(f'[{get_time()}] Access forbidden attempting to fetch {endpoint[:-5]} for track {spotify_id}. '
+                    f'Check permissions and scope of access token.')
         return None
     else:
-        log.info(f'[{get_time()}] Failed to fetch {endpoint[:-5]} for: {spotify_id} due to unhandled response: '
-                 f'{response.status_code}')
+        log.warning(f'[{get_time()}] Failed to fetch {endpoint[:-5]} for: {spotify_id} due to unhandled response: '
+                    f'{response.status_code}')
         return None
 
 
@@ -117,7 +117,7 @@ def collect_track_data(batch: List[str]) -> Tuple[Optional[List[dict]], Optional
     batch_track_data = call_spotify_endpoint(TRACK_DATA_ENDPOINT, track_ids)
     batch_audio_features = call_spotify_endpoint(AUDIO_FEATURES_ENDPOINT, track_ids)
     if not batch_track_data or not batch_audio_features:
-        log.info(f'[{get_time()}] Did not receive suitable API response for processing tracks. Skipping batch...')
+        log.warning(f'[{get_time()}] Did not receive suitable API response for processing tracks. Skipping batch...')
         return None, None
     batch_track_features, new_artist_ids = parse_track_responses(batch_track_data, batch_audio_features)
 
@@ -139,7 +139,7 @@ def collect_artist_data(batch: list[str]) -> Optional[List[dict]]:
     artist_ids = ','.join(batch)
     batch_artist_data = call_spotify_endpoint(ARTIST_DATA_ENDPOINT, artist_ids)
     if not batch_artist_data:
-        log.info(f'[{get_time()}] Did not receive suitable API response for processing artists. Skipping batch...')
+        log.warning(f'[{get_time()}] Did not receive suitable API response for processing artists. Skipping batch...')
         return None
     batch_artist_features = parse_artist_responses(batch_artist_data)
 
@@ -147,6 +147,22 @@ def collect_artist_data(batch: list[str]) -> Optional[List[dict]]:
 
 
 def main():
+    """
+    Orchestrates the data ingestion process from the Spotify API, focusing on collecting new track and artist data.
+
+    This function performs several key operations:
+    - Requests a new access token for Spotify API authentication.
+    - Retrieves a list of track IDs to be processed.
+    - Filters out track IDs already present in the dataset to avoid duplicates.
+    - Checks against a dataset size threshold to prevent excessive data collection.
+    - Collects and stores new track data along with associated artist IDs.
+    - Identifies new artist IDs and collects detailed artist information in a second pass.
+    - Logs the progress and completion of data ingestion steps, including the number of tracks and artists added.
+
+    The process involves reading and writing to CSV files for track IDs, artist IDs, track features, and artist
+    features. It ensures that only new data is added, leveraging existing datasets to maintain a comprehensive and
+    up-to-date collection.
+    """
     log.info(f'[{get_time()}] Starting Spotify API data ingest')
     global ACCESS_HEADER
     ACCESS_HEADER = request_access_token()
@@ -157,8 +173,8 @@ def main():
     n_new_tracks = len(new_track_ids)
 
     if n_new_tracks + n_tracks >= DATASET_SIZE_THRESHOLD:
-        log.info(f'[{get_time()}] Attempting to add {n_new_tracks} tracks, which will exceed threshold of '
-                 f'{DATASET_SIZE_THRESHOLD}. Increase threshold to try again. Cancelling ingest.')
+        log.error(f'[{get_time()}] Attempting to add {n_new_tracks} tracks, which will exceed threshold of '
+                  f'{DATASET_SIZE_THRESHOLD}. Increase threshold to try again. Cancelling ingest.')
         return
 
     log.info(f"[{get_time()}] Attempting to get {n_new_tracks} new tracks. There are {n_tracks} in the existing "
