@@ -284,9 +284,9 @@ def parse_artist_responses(artist_data: dict) -> List[dict]:
     """
     batch_artist_features = []
     for artist in artist_data['artists']:
-        # if not artist:
-        #     log.warning(f'[{get_time()}] Skipping track: {artist.get("id")}, unable to retrieve data.')
-        #     continue
+            # if not artist:
+            #     log.warning(f'[{get_time()}] Skipping track: {artist.get("id")}, unable to retrieve data.')
+            #     continue
         artist_features = {ARTIST_FIELDS[field]: artist.get(field) for field in ARTIST_FIELDS}
         artist_features['artist_followers'] = artist.get('followers', {}).get('total', 0)
 
