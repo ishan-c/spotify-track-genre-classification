@@ -1,5 +1,7 @@
 SPOTIFY_WEB_API = 'https://api.spotify.com/v1/'
 
+PLAYLIST_ENDPOINT = 'playlists/'
+
 TRACK_DATA_ENDPOINT = 'tracks?ids='
 
 AUDIO_FEATURES_ENDPOINT = 'audio-features?ids='

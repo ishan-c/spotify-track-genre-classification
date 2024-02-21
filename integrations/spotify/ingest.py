@@ -64,6 +64,7 @@ log.addHandler(file_handler)
 
 ACCESS_HEADER = None
 root = Path(os.getenv('PROJECT_ROOT', '.'))
+PLAYLIST_IDS_FILE_PATH = root / 'data' / 'spotify_ingest_playlist_ids.csv'
 TRACK_ID_FILE_PATH = root / 'data' / 'spotify_track_ids.csv'
 ARTIST_ID_FILE_PATH = root / 'data' / 'spotify_artist_ids.csv'
 TRACK_FEATURES_FILE_PATH = root / 'data' / 'spotify_track_features.csv'
@@ -82,9 +83,88 @@ def get_time() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def get_track_ids():
-    return ['3rUGC1vUpkDG9CZFHMur1t', '6Qb7YsAqH4wWFUMbGsCpap', '7gaA3wERFkFkgivjwbSvkG', '17phhZDn6oGtzMe56NuWvj',
-            '4iZ4pt7kvcaH6Yo8UoZ4s2']
+def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0, url: str = None) -> Optional[dict]:
+    """
+    Makes a request to a Spotify API endpoint for a given Spotify ID payload, handling retries and common HTTP errors.
+
+    This function is designed to handle each potential response outlined in the Spotify Web API reference, including
+    rate limiting (HTTP 429), access token expiration (HTTP 401), and forbidden access (HTTP 403). It implements
+    automatic retries for rate limiting and token expiration, with a maximum limit on retry attempts.
+
+    Parameters:
+    - endpoint (str): The Spotify API endpoint to be called.
+    - spotify_id (str): The unique identifier for the track, artist, or other Spotify entity.
+    - calls (int): A counter tracking the number of API call attempts made for this request, used to limit retries.
+    - url (str): Optional string to override default behavior if full API call is available (used for playlists)
+    Returns:
+    - dict: The dictionary JSON response from the Spotify API if the request is successful; otherwise, None.
+
+    The function logs warnings for rate limiting and errors, and retries the request after a delay specified by the
+    Spotify API when rate limited. For access token issues, it refreshes the token and retries the request. If the
+    maximum number of retries is exceeded or an unhandled HTTP status code is received, the function returns None.
+    """
+    global ACCESS_HEADER
+    if calls > 3:
+        log.warning(f'[{get_time()}] Maximum API call attempt limit reached.')
+        return None
+    if not url:
+        url = SPOTIFY_WEB_API + endpoint + spotify_id
+    response = requests.get(url, headers=ACCESS_HEADER)
+    if response.status_code == 200:
+        return response.json()
+    elif response.status_code == 429:
+        retry_after = int(response.headers.get('Retry-After', 1))
+        log.info(f'[{get_time()}] Rate limit exceeded. Retrying after {retry_after} seconds.')
+        time.sleep(retry_after)
+        return call_spotify_endpoint(endpoint, spotify_id, calls=calls + 1, url=url)
+    elif response.status_code == 401:
+        ACCESS_HEADER = request_access_token()
+        return call_spotify_endpoint(endpoint, spotify_id, calls=calls + 1, url=url)
+    elif response.status_code == 403:
+        log.warning(f'[{get_time()}] Access forbidden attempting to fetch {endpoint} for track {spotify_id}. '
+                    f'Check permissions and scope of access token.')
+        return None
+    else:
+        log.warning(f'[{get_time()}] Failed to fetch {endpoint} for: {spotify_id} due to unhandled response: '
+                    f'{response.status_code}')
+        return None
+
+
+def parse_playlist_data():
+    pass
+
+
+def get_track_ids() -> Optional[List[str]]:
+    """
+    Accesses a fixed playlist ids file and calls the spotify API in order to yield the track ids of every track in each
+    playlist
+
+    Returns:
+         track_ids (list) - list of strings representing Spotify track ids found each of the playlists
+    """
+
+    if os.path.exists(PLAYLIST_IDS_FILE_PATH):
+
+        with open(PLAYLIST_IDS_FILE_PATH, mode='r', newline='', encoding='utf-8') as playlist_file:
+            reader = csv.reader(playlist_file)
+            playlist_ids = {line[0] for line in reader}
+
+        track_ids = []
+        for playlist_id in playlist_ids:
+            url = SPOTIFY_WEB_API + PLAYLIST_ENDPOINT + playlist_id + '/tracks&limit=50'
+            playlist_data = call_spotify_endpoint(PLAYLIST_ENDPOINT, playlist_id, calls=0, url=url)
+            if not playlist_data:
+                log.warning(f'[{get_time()}] Did not receive suitable API response for playlist {playlist_id}. '
+                            f'Skipping...')
+                continue
+            for item in playlist_data['items']:
+                track_ids.append(item['track'].get('id', ''))
+            if playlist_data['next'] is not None:
+                pass
+
+        return []
+
+    return None
 
 
 def get_existing_ids(file_path: Path) -> Tuple[Set, int]:
@@ -105,52 +185,6 @@ def get_existing_ids(file_path: Path) -> Tuple[Set, int]:
             reader = csv.reader(id_file)
             seen_ids = {line[0] for line in reader}
     return seen_ids, len(seen_ids)
-
-
-def call_spotify_endpoint(endpoint: str, spotify_id: str, calls: int = 0) -> Optional[dict]:
-    """
-    Makes a request to a Spotify API endpoint for a given Spotify ID payload, handling retries and common HTTP errors.
-
-    This function is designed to handle each potential response outlined in the Spotify Web API reference, including
-    rate limiting (HTTP 429), access token expiration (HTTP 401), and forbidden access (HTTP 403). It implements
-    automatic retries for rate limiting and token expiration, with a maximum limit on retry attempts.
-
-    Parameters:
-    - endpoint (str): The Spotify API endpoint to be called.
-    - spotify_id (str): The unique identifier for the track, artist, or other Spotify entity.
-    - calls (int): A counter tracking the number of API call attempts made for this request, used to limit retries.
-
-    Returns:
-    - dict: The dictionary JSON response from the Spotify API if the request is successful; otherwise, None.
-
-    The function logs warnings for rate limiting and errors, and retries the request after a delay specified by the
-    Spotify API when rate limited. For access token issues, it refreshes the token and retries the request. If the
-    maximum number of retries is exceeded or an unhandled HTTP status code is received, the function returns None.
-    """
-    global ACCESS_HEADER
-    if calls > 3:
-        log.warning(f'[{get_time()}] Maximum API call attempt limit reached.')
-        return None
-    url = SPOTIFY_WEB_API + endpoint + spotify_id
-    response = requests.get(url, headers=ACCESS_HEADER)
-    if response.status_code == 200:
-        return response.json()
-    elif response.status_code == 429:
-        retry_after = int(response.headers.get('Retry-After', 1))
-        log.info(f'[{get_time()}] Rate limit exceeded. Retrying after {retry_after} seconds.')
-        time.sleep(retry_after)
-        return call_spotify_endpoint(endpoint, spotify_id, calls=calls + 1)
-    elif response.status_code == 401:
-        ACCESS_HEADER = request_access_token()
-        return call_spotify_endpoint(endpoint, spotify_id, calls=calls + 1)
-    elif response.status_code == 403:
-        log.warning(f'[{get_time()}] Access forbidden attempting to fetch {endpoint[:-5]} for track {spotify_id}. '
-                    f'Check permissions and scope of access token.')
-        return None
-    else:
-        log.warning(f'[{get_time()}] Failed to fetch {endpoint[:-5]} for: {spotify_id} due to unhandled response: '
-                    f'{response.status_code}')
-        return None
 
 
 def parse_track_responses(track_data: dict, audio_features: dict) -> Tuple[List[dict], Set[str]]:
@@ -196,8 +230,8 @@ def collect_track_data(batch: List[str]) -> Tuple[Optional[List[dict]], Optional
     Fetches and processes a batch of track IDs to collect track data and audio features from the Spotify API.
 
     This function makes calls to the Spotify API to fetch data for a list of track IDs, including track metadata
-    and audio features. It then parses the responses to structure the data into a list of dictionaries, each representing
-    a track, and collects a set of artist IDs associated with those tracks.
+    and audio features. It then parses the responses to structure the data into a list of dictionaries per track
+    and collects a set of artist IDs associated with those tracks.
 
     Parameters:
     - batch (list): A list of Spotify track IDs to be processed.
@@ -298,6 +332,10 @@ def main():
     global ACCESS_HEADER
     ACCESS_HEADER = request_access_token()
     track_ids = get_track_ids()
+    if not track_ids:
+        log.error(f'[{get_time()}] No tracks or playlists found. Please provide a file at path: '
+                  f'{PLAYLIST_IDS_FILE_PATH}')
+        return
     known_artist_ids, n_artists = get_existing_ids(ARTIST_ID_FILE_PATH)
     known_track_ids, n_tracks = get_existing_ids(TRACK_ID_FILE_PATH)
     new_track_ids = [track for track in track_ids if track not in known_track_ids]
