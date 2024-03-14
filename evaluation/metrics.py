@@ -71,11 +71,14 @@ class Metrics:
 
         jaccard = jaccard_score(self.y_true, self.y_pred, average='weighted', zero_division=0)
         hamming = hamming_loss(self.y_true, self.y_pred)
-        precision_mi, recall_mi, f1_mi, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='micro')
-        precision_ma, recall_ma, f1_ma, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='macro')
+        precision_mi, recall_mi, f1_mi, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='micro',
+                                                                            zero_division=0)
+        precision_ma, recall_ma, f1_ma, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='macro',
+                                                                            zero_division=0)
         precision_wt, recall_wt, f1_wt, _ = precision_recall_fscore_support(self.y_true, self.y_pred,
-                                                                            average='weighted')
-        precision_sa, recall_sa, f1_sa, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='samples')
+                                                                            average='weighted', zero_division=0)
+        precision_sa, recall_sa, f1_sa, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='samples',
+                                                                            zero_division=0)
 
         self.metrics = {
             'weighted_jaccard': jaccard,

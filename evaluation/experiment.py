@@ -82,9 +82,9 @@ class Experiment:
 
             if save_model:
                 if isinstance(model, BaseEstimator):
-                    mlflow.sklearn.log_model(model, artifact_path="models/" + name, registered_model_name=name)
+                    mlflow.sklearn.log_model(model, registered_model_name=name)
                 elif isinstance(model, nn.Module):
-                    mlflow.pytorch.log_model(model, artifact_path="models/" + name, registered_model_name=name)
+                    mlflow.pytorch.log_model(model, registered_model_name=name)
                 else:
                     print(f"Model type not supported for automatic MLflow logging: {type(model)}")
 
