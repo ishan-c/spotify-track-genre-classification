@@ -132,8 +132,8 @@ class Metrics:
         """
         Prints the overall metrics including Hamming Loss and Jaccard Score, along with the global model performance.
         """
-        print(f'Hamming Loss: {self.metrics["hamming"]:.4f}')
-        print(f'Jaccard Score (Weighted Avg): {self.metrics["jaccard"]:.4f}')
+        print(f'Hamming Loss: {self.metrics["hamming_loss"]:.4f}')
+        print(f'Jaccard Score (Weighted Avg): {self.metrics["weighted_jaccard"]:.4f}')
         print(self.headers + '\n' + self.global_report)
 
     def print_label_metrics_report(self, n_labels: int = None):
