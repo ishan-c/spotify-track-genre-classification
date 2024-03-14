@@ -25,6 +25,7 @@ class Experiment:
         test_labels (np.ndarray): test data labels
         dataset_chars (dict): characteristics of the dataset used for the experiment, used for logging
         label_names (List[str]): names of the labels for the experiment
+        models (dict): stores model instances provided to the experiment
         results (dict): stores metrics of each model run within the experiment
     """
 
@@ -37,6 +38,7 @@ class Experiment:
         self.dataset_chars = dataset_chars
         self.label_names = label_names
 
+        self.models = {}
         self.results = {}
 
     def _run_model(self, name: str, model):
@@ -107,7 +109,9 @@ class Experiment:
         if mlflow_path:
             mlflow.set_experiment(mlflow_path)
 
-        for name, model in models.items():
+        self.models = models
+
+        for name, model in self.models.items():
             print(f'Running model: {name}')
             self._run_model(name, model)
             model_tags = tags.get(name, {})
