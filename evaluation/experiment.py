@@ -55,7 +55,7 @@ class Experiment:
         metrics = Metrics(self.test_labels, predictions, self.label_names, name)
         self.results[name] = metrics
 
-    def _log_model(self, name: str, model: Any, config: dict, model_tags: Dict[str, str], save_model: bool = False):
+    def _log_model_run(self, name: str, model: Any, config: dict, model_tags: Dict[str, str], save_model: bool = False):
         """
         Logs model configuration, metrics, and optionally the model itself to MLflow
 
@@ -115,5 +115,5 @@ class Experiment:
             print(f'Running model: {name}')
             self._run_model(name, model)
             model_tags = tags.get(name, {})
-            self._log_model(name, model, configs[name], model_tags, save_models)
+            self._log_model_run(name, model, configs[name], model_tags, save_models)
             print(f'{name} complete.')
