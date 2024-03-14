@@ -136,7 +136,7 @@ class Dataset:
             train_test_split(self.features, self.labels, self.ids, test_size=test_size, random_state=random_state)
         return features_train, labels_train, ids_train, features_test, labels_test, ids_test
 
-    def create_dataset_log(self) -> Optional[dict]:
+    def get_dataset_characteristics(self) -> Optional[dict]:
         """
         Provides a dictionary describing the dataset for logging purposes
 
