@@ -10,9 +10,8 @@ multi-class classification as well) and provides methods to print aggregated met
 """
 
 import numpy as np
-import pandas as pd
 from scipy.sparse import lil_matrix
-from sklearn.metrics import classification_report, hamming_loss, jaccard_score
+from sklearn.metrics import classification_report, hamming_loss, jaccard_score, precision_recall_fscore_support
 
 
 class Metrics:
@@ -20,65 +19,116 @@ class Metrics:
     A class to compute, store, and display metrics for various multi-label classification models
 
     Parameters:
-    - y_true (np.ndarray): ground truth binary labels array, shape (n_samples, n_labels).
-    - y_pred (lil_matrix): predicted labels as a  sparse matrix, shape (n_samples, n_labels).
-    - labels (list): label names corresponding to columns in `y_true` and `y_pred`.
+    - y_true (np.ndarray): ground truth binary labels array, shape (n_samples, n_labels)
+    - y_pred (lil_matrix): predicted labels as a  sparse matrix, shape (n_samples, n_labels)
+    - labels (list): label names corresponding to columns in `y_true` and `y_pred`
 
     Attributes:
-    - hamming (float): Hamming loss for the predictions.
-    - jaccard (float): weighted average Jaccard score for the predictions.
+    - metrics (dict): flat dictionary containing all metrics
     - headers (str): header section of the classification report provided by sklearn
-    - label_report (str): per-label metrics section of the classification report.
-    - global_report (str): global metrics section of the classification report.
+    - label_report (str): per-label metrics section of the classification report
+    - global_report (str): global metrics section of the classification report
 
     Methods:
-    - print_metrics(): prints the global performance metrics (Hamming Loss and Jaccard Score) and aggregated label
-        metrics
-    - print_label_metrics(n_labels=None): prints metrics for each label. If `n_labels` is specified, only metrics for
-        the top `n_labels` are printed.
+    - get_metrics(): returns dictionary containing allc alculated metrics
+    - print_metrics_report(): prints the global performance metrics (Hamming Loss and Jaccard Score) and aggregated
+        label metrics
+    - print_label_metrics_report(n_labels=None): prints metrics for each label. If `n_labels` is specified, only metrics
+        for the top `n_labels` are printed.
     """
 
-    def __init__(self, y_true: np.ndarray, y_pred: lil_matrix, labels: pd.Series):
+    def __init__(self, y_true: np.ndarray, y_pred: lil_matrix, labels: list):
         """
         Initializes the Metrics object with true labels, predicted labels, and label names, and computes initial metrics
 
         Parameters:
         - y_true (np.ndarray): ground truth binary labels array of shape (n_samples, n_labels).
         - y_pred (lil_matrix): predicted labels as a dense or sparse matrix of shape (n_samples, n_labels).
-        - labels (pd.Series): label names corresponding to columns in `y_true` and `y_pred`.
+        - labels (list): label names corresponding to columns of `y_true` and `y_pred`.
         """
 
         self.y_true = y_true
         self.y_pred = y_pred
+        self.metrics = None
 
-        self.headers, self.label_report, self.global_report = self._parse_report(labels.tolist())
-        self.jaccard = jaccard_score(y_true, y_pred, average='weighted', zero_division=0)
-        self.hamming = hamming_loss(y_true, y_pred)
+        report = self._calculate_metrics(labels)
+        self.headers, self.label_report, self.global_report = self._parse_report(report)
 
-    def _parse_report(self, labels: list) -> tuple:
+    def _calculate_metrics(self, labels: list):
+        """
+        Internal method to call the necessary metric functions from scikit-learn
+
+        Parameters:
+        - labels (list): list of label names.
+
+        Returns:
+        - report (str): output of the scikit-learn classification report, parsed later by _parse_report() method
+        """
+
+        jaccard = jaccard_score(self.y_true, self.y_pred, average='weighted', zero_division=0)
+        hamming = hamming_loss(self.y_true, self.y_pred)
+        precision_mi, recall_mi, f1_mi, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='micro')
+        precision_ma, recall_ma, f1_ma, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='macro')
+        precision_wt, recall_wt, f1_wt, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='weighted')
+        precision_sa, recall_sa, f1_sa, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='samples')
+
+        self.metrics = {
+            'weighted_jaccard': jaccard,
+            'hamming_loss': hamming,
+            'precision_micro_avg': precision_mi,
+            'recall_micro_avg': recall_mi,
+            'f1_micro_avg': f1_mi,
+            'precision_macro_avg': precision_ma,
+            'recall_macro_avg': recall_ma,
+            'f1_macro_avg': f1_ma,
+            'precision_weighted_avg': precision_wt,
+            'recall_weighted_avg': recall_wt,
+            'f1_weighted_avg': f1_wt,
+            'precision_samples_avg': precision_sa,
+            'recall_samples_avg': recall_sa,
+            'f1_samples_avg': f1_sa
+        }
+
+        report = classification_report(y_true=self.y_true, y_pred=self.y_pred, target_names=labels, digits=3,
+                                       zero_division=0)
+
+        return report
+
+    def get_metrics(self) -> dict:
+        """
+        Provides all metrics associated with run in dictionary format
+
+        Returns:
+        - dict: `metrics` attribute, the dictionary containing all stored metrics for model run
+        """
+        return self.metrics
+
+    @staticmethod
+    def _parse_report(report: str) -> tuple:
         """
         Internal method to parse the classification report into its constituent parts.
 
         Parameters:
-        - labels (list): A list of label names.
+        - report (str): str containing the output report from scikit classification_report
+        - labels (list): list of label names.
 
         Returns:
         - tuple: Contains the headers, label-specific report, and global metrics report as strings.
         """
-        report = classification_report(y_true=self.y_true, y_pred=self.y_pred, target_names=labels, digits=3, zero_division=0)
+
         report_sections = report.split('\n\n')
 
         return report_sections[0], report_sections[1], report_sections[2]
 
-    def print_metrics(self):
+    def print_metrics_report(self):
         """
         Prints the overall metrics including Hamming Loss and Jaccard Score, along with the global model performance.
         """
-        print(f'Hamming Loss: {self.hamming:.4f}')
-        print(f'Jaccard Score (Weighted Avg): {self.jaccard:.4f}')
+        print(f'Hamming Loss: {self.metrics["hamming"]:.4f}')
+        print(f'Jaccard Score (Weighted Avg): {self.metrics["jaccard"]:.4f}')
         print(self.headers + '\n' + self.global_report)
 
-    def print_label_metrics(self, n_labels: int = None):
+    def print_label_metrics_report(self, n_labels: int = None):
         """
         Prints metrics for individual labels. If `n_labels` is specified, limits the output to the top `n_labels`.
 
