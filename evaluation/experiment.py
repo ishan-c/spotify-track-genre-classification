@@ -108,6 +108,8 @@ class Experiment:
             mlflow.set_experiment(mlflow_path)
 
         for name, model in models.items():
+            print(f'Running model: {name}')
             self._run_model(name, model)
             model_tags = tags.get(name, {})
             self._log_model(name, model, configs[name], model_tags, save_models)
+            print(f'{name} complete.')
