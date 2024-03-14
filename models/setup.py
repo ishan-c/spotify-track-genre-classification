@@ -19,6 +19,7 @@ def _create_model(config: dict):
 
 def experiment_setup(model_configs: list, names: list = None):
     models = {}
+    configs = {}
 
     for i, config in enumerate(model_configs):
         if names and len(names) == len(model_configs):
@@ -26,5 +27,6 @@ def experiment_setup(model_configs: list, names: list = None):
         else:
             name = config['model_type'].split('.')[-1]
         models[name] = _create_model(config)
+        configs[name] = config
 
-    return models
+    return models, configs
