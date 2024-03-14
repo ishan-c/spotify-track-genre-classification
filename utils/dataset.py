@@ -1,12 +1,11 @@
 """
 This module contains the Dataset class for managing datasets in modeling experiments. It provides functionalities for
-splitting dataset into training and testing sets with support for multi-label classification, and logging dataset
- characteristics pre- and post-split using MLflow.
+splitting dataset into training and testing sets with support for multi-label classification and logging dataset
+ characteristics pre- and post-split.
 """
 
 from typing import Optional, Tuple
 
-import mlflow
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -27,7 +26,6 @@ class Dataset:
         random_state (Optional[int, float]): Random state value for reproducibility of dataset splits.
         n_train_examples (Optional[int]): Number of examples in the training set after split.
         n_test_examples (Optional[int]): Number of examples in the testing set after split.
-        log_complete (bool): Indicates whether the dataset characteristics have been logged using MLflow.
 
     Parameters:
         input_data (pd.DataFrame): The input dataset containing features, labels, and an identifier column.
@@ -64,8 +62,6 @@ class Dataset:
         self.random_state = None
         self.n_train_examples = None
         self.n_test_examples = None
-
-        self.log_complete = False
 
     def split_data(self, test_size: float, iterative: bool = True, random_state: [int, float] = None,
                    force_split: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray,
@@ -140,25 +136,17 @@ class Dataset:
             train_test_split(self.features, self.labels, self.ids, test_size=test_size, random_state=random_state)
         return features_train, labels_train, ids_train, features_test, labels_test, ids_test
 
-    def log_dataset(self, force_log: bool = False):
+    def create_dataset_log(self) -> Optional[dict]:
         """
-        Logs the dataset characteristics using MLflow
+        Provides a dictionary describing the dataset for logging purposes
 
-        Parameters:
-            force_log (bool, optional): If True, forces logging even if the dataset has already been logged
+        Returns:
+            dataset_characteristics (dict, optional): contains key-value pairs for each logged attribute of the dataset
         """
         if not self.split_complete:
             print('This dataset has not yet been split. Please call split_data() first in order to obtain train and '
                   'test sizes for logs.')
             return
-        if self.log_complete:
-            print('Dataset has already been logged.')
-            if force_log:
-                print('`force_log` = True, Proceeding with logging.')
-                pass
-            else:
-                print('Canceling logging.')
-                return
 
         dataset_characteristics = {
             'features': self.feature_names,
@@ -171,9 +159,4 @@ class Dataset:
             'n_test_examples': self.n_test_examples
         }
 
-        with mlflow.start_run():
-            mlflow.log_params(dataset_characteristics)
-
-        self.log_complete = True
-
-        return
+        return dataset_characteristics
