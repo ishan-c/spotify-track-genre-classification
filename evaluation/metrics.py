@@ -8,6 +8,7 @@ reports including precision, recall, F1 scores (macro, micro, and weighted avera
 The module is designed to handle multi-label classification tasks (thought it should be able to handle binary and
 multi-class classification as well) and provides methods to print aggregated metrics as well as  per-label metrics.
 """
+from typing import Optional
 
 import numpy as np
 from scipy.sparse import lil_matrix
@@ -22,6 +23,7 @@ class Metrics:
     - y_true (np.ndarray): ground truth binary labels array, shape (n_samples, n_labels)
     - y_pred (lil_matrix): predicted labels as a  sparse matrix, shape (n_samples, n_labels)
     - labels (list): label names corresponding to columns in `y_true` and `y_pred`
+    - name (str): optional name associating metrics to a model or model run
 
     Attributes:
     - metrics (dict): flat dictionary containing all metrics
@@ -37,7 +39,7 @@ class Metrics:
         for the top `n_labels` are printed.
     """
 
-    def __init__(self, y_true: np.ndarray, y_pred: lil_matrix, labels: list):
+    def __init__(self, y_true: np.ndarray, y_pred: lil_matrix, labels: list, name: Optional[str] = None):
         """
         Initializes the Metrics object with true labels, predicted labels, and label names, and computes initial metrics
 
@@ -45,10 +47,12 @@ class Metrics:
         - y_true (np.ndarray): ground truth binary labels array of shape (n_samples, n_labels).
         - y_pred (lil_matrix): predicted labels as a dense or sparse matrix of shape (n_samples, n_labels).
         - labels (list): label names corresponding to columns of `y_true` and `y_pred`.
+        - name (str, optional): optional argument to associate metrics with a model or run
         """
 
         self.y_true = y_true
         self.y_pred = y_pred
+        self.name = name
         self.metrics = None
 
         report = self._calculate_metrics(labels)
