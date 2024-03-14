@@ -67,19 +67,19 @@ class Dataset:
                    force_split: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray,
                                                           np.ndarray, np.ndarray, np.ndarray]]:
         """
-       Splits the dataset into training and testing sets with support for iterative splitting, used in multi-label
-       classification.
+        Splits the dataset into training and testing sets with support for iterative splitting, used in multi-label
+        classification.
 
-       Parameters:
+        Parameters:
            test_size (float): Proportion of the dataset to include in the test split
            iterative (bool, optional): Whether to use iterative stratification for splitting. Defaults to True
            random_state (Optional[int, float], optional): Controls the randomness of the split. Defaults to None
            force_split (bool, optional): If True, forces a new split even if the dataset has already been split
 
-       Returns:
+        Returns:
            tuple of six numpy arrays: (features_train, labels_train, ids_train, features_test, labels_test, ids_test),
            or None if the split is not performed.
-       """
+        """
         if not (0 < test_size < 1):
             print('Please choose `test_size` between 0 and 1, non-inclusive.')
             return
