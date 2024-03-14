@@ -32,7 +32,7 @@ class Metrics:
     - global_report (str): global metrics section of the classification report
 
     Methods:
-    - get_metrics(): returns dictionary containing allc alculated metrics
+    - get_metrics(): returns dictionary containing all calculated metrics
     - print_metrics_report(): prints the global performance metrics (Hamming Loss and Jaccard Score) and aggregated
         label metrics
     - print_label_metrics_report(n_labels=None): prints metrics for each label. If `n_labels` is specified, only metrics
@@ -73,7 +73,8 @@ class Metrics:
         hamming = hamming_loss(self.y_true, self.y_pred)
         precision_mi, recall_mi, f1_mi, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='micro')
         precision_ma, recall_ma, f1_ma, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='macro')
-        precision_wt, recall_wt, f1_wt, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='weighted')
+        precision_wt, recall_wt, f1_wt, _ = precision_recall_fscore_support(self.y_true, self.y_pred,
+                                                                            average='weighted')
         precision_sa, recall_sa, f1_sa, _ = precision_recall_fscore_support(self.y_true, self.y_pred, average='samples')
 
         self.metrics = {
