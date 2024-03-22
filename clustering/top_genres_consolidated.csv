@@ -1,0 +1,43 @@
+,Genre 0,Genre 1,Genre 2,Genre 3,Genre 4,Cluster,Combine
+1,rock,classic rock,album rock,soft rock,mellow gold,rock,
+2,blues,electric blues,blues rock,traditional blues,,blues,
+3,modern blues,chicago blues,soul blues,acoustic blues,texas blues,,blues
+4,melodic death metal,swedish melodeath,swedish metal,swedish death metal,gothenburg metal,,metal
+5,rap,hip hop,pop rap,trap,,hip hop,
+6,gangster rap,east coast hip hop,west coast rap,conscious hip hop,hardcore hip hop,,hip hop
+7,pop,dance pop,r&b,southern hip hop,urban contemporary,pop and r&b,
+8,classical,orchestra,classical performance,orchestral performance,late romantic era,classical,
+9,scorecore,baroque,early music,german baroque,theme,,classical
+10,jazz,bebop,jazz saxophone,contemporary post-bop,hard bop,jazz,
+11,house,tech house,uk dance,bass house,complextro,,electronic
+12,edm,pop dance,electro house,brostep,slap house,electronic,
+13,sad sierreno,corridos tumbados,corrido,sierreno,musica mexicana,,world
+14,urbano latino,trap latino,reggaeton,reggaeton colombiano,latin pop,latin american pop,
+15,melodic metalcore,metalcore,deathcore,djent,trancecore,,metal
+16,classic soul,motown,southern soul,disco,quiet storm,,jazz
+17,soul,vocal jazz,jazz blues,jazz trumpet,torch song,,jazz
+18,afropop,world,mande pop,malian blues,desert blues,world,
+19,post-romantic era,early modern classical,impressionism,neoclassicism,early avant garde,,classical
+20,classical piano,classical era,early romantic era,german romanticism,chamber orchestra,,classical
+21,metal,old school thrash,thrash metal,speed metal,,metal,
+22,alternative metal,post-grunge,nu metal,rap metal,groove metal,,metal
+23,modern rock,permanent wave,alternative rock,pop rock,pop punk,,rock
+24,filmi,modern bollywood,desi pop,punjabi pop,indian instrumental,bollywood,
+25,world fusion,indian classical,hindustani classical,indian fusion,hindustani instrumental,,world
+26,miami hip hop,underground hip hop,drill,dark trap,cloud rap,,hip hop
+27,melodic rap,canadian pop,chicago rap,neo soul,canadian hip hop,,hip hop
+28,contemporary country,country,country road,modern country rock,,country,
+29,new wave pop,new romantic,new wave,synthpop,dance rock,new wave and synthpop,
+30,glam metal,psychedelic rock,glam rock,piano rock,art rock,,rock
+31,bossa nova,latin jazz,samba-jazz,,,,jazz
+32,adult standards,rock-and-roll,rockabilly,easy listening,lounge,adult standards,
+33,reggae,roots reggae,dub,rocksteady,lovers rock,reggae,
+34,stomp and holler,indie folk,new americana,progressive bluegrass,north carolina roots,folk,
+35,military band,marching band,concert band,american romanticism,wind symphony,military,
+36,dancehall,traphall,jamaican dancehall,jamaican hip hop,,caribbean,
+37,anime score,anime,japanese soundtrack,japanese classical,japanese celtic,japanese,
+38,soundtrack,orchestral soundtrack,video game music,british soundtrack,german soundtrack,soundtrack,
+39,indie rock,indietronica,art pop,melancholia,garage rock,indie rock and electronica,
+40,dutch blues,dutch rock,nederpop,,,dutch genres,
+41,ccm,christian music,christian alternative rock,,,gospel,
+42,focus beats,k-pop,pov: indie,k-pop girl group,classic oklahoma country,catch-all,
