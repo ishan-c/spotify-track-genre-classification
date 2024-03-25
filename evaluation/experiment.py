@@ -30,13 +30,13 @@ class Experiment:
     """
 
     def __init__(self, train_data: np.ndarray, train_labels: np.ndarray, test_data: np.ndarray, test_labels: np.ndarray,
-                 dataset_chars: dict, label_names: List[str]):
+                 dataset_chars: dict):
         self.train_data = train_data
         self.train_labels = train_labels
         self.test_data = test_data
         self.test_labels = test_labels
         self.dataset_chars = dataset_chars
-        self.label_names = label_names
+        self.label_names = dataset_chars['labels']
 
         self.models = {}
         self.results = {}
