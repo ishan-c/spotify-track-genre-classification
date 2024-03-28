@@ -1,14 +1,14 @@
 """
 This module contains the Dataset class for managing datasets in modeling experiments. It provides functionalities for
 splitting dataset into training and testing sets with support for multi-label classification and logging dataset
- characteristics pre- and post-split.
+ characteristics pre- and post-split. It has also been extended to support cross-validation splitting as well.
 """
 
-from typing import Optional, Tuple
+from typing import Optional, List, Tuple
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold, train_test_split
 from skmultilearn.model_selection import IterativeStratification
 
 
@@ -63,25 +63,29 @@ class Dataset:
         self.n_train_examples = None
         self.n_test_examples = None
 
-    def split_data(self, test_size: float, iterative: bool = True, random_state: [int, float] = None,
-                   force_split: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray,
-                                                          np.ndarray, np.ndarray, np.ndarray]]:
+    def split_data(self, cross_val: bool = False, n_splits: int = 0, test_size: float = 0.0, iterative: bool = True,
+                   random_state: [int, float] = None, force_split: bool = False):
         """
         Splits the dataset into training and testing sets with support for iterative splitting, used in multi-label
         classification.
 
         Parameters:
-           test_size (float): Proportion of the dataset to include in the test split
-           iterative (bool, optional): Whether to use iterative stratification for splitting. Defaults to True
-           random_state (Optional[int, float], optional): Controls the randomness of the split. Defaults to None
-           force_split (bool, optional): If True, forces a new split even if the dataset has already been split
+            cross_val(bool): Whether to perform cross-validation splitting. Defaults to False
+            n_splits (int): Number of splits to use in cross-validation, if applicable. Defaults to 0.
+            test_size (float): Proportion of the dataset to include in the test split. Defaults to 0.0.
+            iterative (bool, optional): Whether to use iterative stratification for splitting. Defaults to True
+            random_state (Optional[int, float], optional): Controls the randomness of the split. Defaults to None
+            force_split (bool, optional): If True, forces a new split even if the dataset has already been split
 
         Returns:
-           tuple of six numpy arrays: (features_train, labels_train, ids_train, features_test, labels_test, ids_test),
-           or None if the split is not performed.
+            tuple of six numpy arrays: (features_train, labels_train, ids_train, features_test, labels_test, ids_test),
+            or None if the split is not performed.
         """
-        if not (0 < test_size < 1):
-            print('Please choose `test_size` between 0 and 1, non-inclusive.')
+        if not cross_val and not (0 < test_size < 1):
+            print('Please choose `test_size` between 0 and 1 if cross-validation is set to False.')
+            return
+        elif cross_val and n_splits <= 1:
+            print('Please choose `n_splits` >= 2 if cross-validation is set to True.')
             return
         if self.split_complete:
             print('Dataset has already been split, proceeding will overwrite split data. Continue? (Y/N)')
@@ -92,17 +96,55 @@ class Dataset:
                 print('Canceling split.')
                 return
 
-        if iterative:
+        if cross_val:
+            x_train, y_train, ids_train, x_test, y_test, ids_test = self._cross_validation_split(n_splits, random_state,
+                                                                                                 iterative)
+        elif iterative:
             x_train, y_train, ids_train, x_test, y_test, ids_test = self._iterative_train_test_split(test_size)
         else:
             x_train, y_train, ids_train, x_test, y_test, ids_test = self._train_test_split(test_size, random_state)
 
         self.random_state = random_state
-        self.n_train_examples = len(ids_train)
-        self.n_test_examples = len(ids_test)
+        self.n_train_examples = [len(ids) for ids in ids_train] if isinstance(ids_train, list) else len(ids_test)
+        self.n_test_examples = [len(ids) for ids in ids_test] if isinstance(ids_test, list) else len(ids_test)
         self.split_complete = True
 
         return x_train, y_train, ids_train, x_test, y_test, ids_test
+
+    def _cross_validation_split(self, n_splits: int, random_state: [float, int], iterative: bool) \
+            -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray],
+                     List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
+        """
+        Performs cross-validation splitting using either scikit-multilearn IterativeStratification or standard KFold
+        splitting from sci-kit learn.
+
+        Parameters:
+            n_splits (int): number of splits to use in cross-validation
+            random_state (float or int): input seed value to control randomness
+            iterative (bool): Whether to perform iterative stratification, changes the index generator
+
+        Returns:
+            tuple of lists of n_splits arrays: (features_train, labels_train, ids_train, features_test, labels_test,
+            ids_test)
+        """
+        if iterative:
+            stratifier = IterativeStratification(n_splits, order=2, random_state=random_state)
+            index_generator = stratifier.split(self.features, self.labels)
+        else:
+            kf = KFold(n_splits=n_splits, random_state=random_state)
+            index_generator = kf.split(self.features)
+
+        features_train, labels_train, ids_train, features_test, labels_test, ids_test = [], [], [], [], [], []
+
+        for train_indexes, test_indexes in index_generator:
+            features_train.append(self.features[train_indexes, :])
+            labels_train.append(self.labels[train_indexes, :])
+            ids_train.append(self.ids[train_indexes])
+            features_test.append(self.features[test_indexes, :])
+            labels_test.append(self.labels[test_indexes, :])
+            ids_test.append(self.ids[test_indexes])
+
+        return features_train, labels_train, ids_train, features_test, labels_test, ids_test
 
     def _iterative_train_test_split(self, test_size: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray,
                                                                      np.ndarray, np.ndarray, np.ndarray]:
