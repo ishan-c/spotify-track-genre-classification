@@ -89,7 +89,7 @@ class Experiment:
                     print(f"Model type not supported for automatic MLflow logging: {type(model)}")
 
     def run_experiment(self, models: Dict[str, Any], configs: Dict[str, Any], mlflow_path: Optional[str] = None,
-                       tags: Dict[str, Dict[str, str]] = None, save_models: bool = False):
+                       tags: Dict[str, Dict[str, str]] = None, save_models: bool = False, log_results: bool = True):
         """
         Executes the experiment with provided models, configurations, and additional parameters. Logs results to MLflow
 
@@ -99,6 +99,8 @@ class Experiment:
             mlflow_path (str, optional): path name of the MLflow experiment under which to log this run
             tags (dict): optional, model names and their corresponding tag dictionaries for logging
             save_models (bool): whether to save the trained model to MLflow. If True, models are logged
+            log_results (bool): whether to log metrics to MLflow. If False, models params and metrics are not logged
+
         """
 
         if models.keys() != configs.keys():
@@ -114,6 +116,7 @@ class Experiment:
         for name, model in self.models.items():
             print(f'Running model: {name}')
             self._run_model(name, model)
-            model_tags = tags.get(name, {})
-            self._log_model_run(name, model, configs[name], model_tags, save_models)
+            if log_results:
+                model_tags = tags.get(name, {})
+                self._log_model_run(name, model, configs[name], model_tags, save_models)
             print(f'{name} complete.')
