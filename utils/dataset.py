@@ -178,9 +178,12 @@ class Dataset:
             train_test_split(self.features, self.labels, self.ids, test_size=test_size, random_state=random_state)
         return features_train, labels_train, ids_train, features_test, labels_test, ids_test
 
-    def get_dataset_characteristics(self) -> Optional[dict]:
+    def get_dataset_characteristics(self, index: int = None) -> Optional[dict]:
         """
         Provides a dictionary describing the dataset for logging purposes
+        Parameters:
+            index(int): optional index can be passed in if cross-validation was used to get train and test example count
+                Otherwise, full list of counts is returned, or a single count if a single split was made
 
         Returns:
             dataset_characteristics (dict, optional): contains key-value pairs for each logged attribute of the dataset
@@ -197,8 +200,8 @@ class Dataset:
             'n_labels': self.n_labels,
             'random_state': self.random_state,
             'n_examples': self.n_examples,
-            'n_train_examples': self.n_train_examples,
-            'n_test_examples': self.n_test_examples
+            'n_train_examples': self.n_train_examples[index] if index else self.n_train_examples,
+            'n_test_examples': self.n_test_examples[index] if index else self.n_test_examples
         }
 
         return dataset_characteristics
