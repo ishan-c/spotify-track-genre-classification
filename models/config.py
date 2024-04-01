@@ -185,3 +185,99 @@ baseline_saga_10_C_experiment_configs = [
         }
     }
 ]
+
+baseline_linearsvc_experiment_configs = [
+    {
+        'model_type': 'skmultilearn.problem_transform.BinaryRelevance',
+        'base_model': {
+            'model_type': 'sklearn.svm.LinearSVC',
+            'hyperparameters': {
+                'max_iter': 1000,
+                'random_state': SEED
+            }
+        }
+
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.ClassifierChain',
+        'base_model': {
+            'model_type': 'sklearn.svm.LinearSVC',
+            'hyperparameters': {
+                'max_iter': 1000,
+                'random_state': SEED
+            }
+        }
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.LabelPowerset',
+        'base_model': {
+            'model_type': 'sklearn.svm.LinearSVC',
+            'hyperparameters': {
+                'max_iter': 1000,
+                'random_state': SEED
+            }
+        }
+    }
+]
+
+baseline_random_forest_experiment_configs = [
+    {
+        'model_type': 'skmultilearn.problem_transform.BinaryRelevance',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.RandomForestClassifier',
+            'hyperparameters': {
+                'random_state': SEED
+            }
+        }
+
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.ClassifierChain',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.RandomForestClassifier',
+            'hyperparameters': {
+                'random_state': SEED
+            }
+        }
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.LabelPowerset',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.RandomForestClassifier',
+            'hyperparameters': {
+                'random_state': SEED
+            }
+        }
+    }
+]
+
+baseline_gradient_boost_experiment_configs = [
+    {
+        'model_type': 'skmultilearn.problem_transform.BinaryRelevance',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED
+            }
+        }
+
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.ClassifierChain',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED
+            }
+        }
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.LabelPowerset',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED
+            }
+        }
+    }
+]
