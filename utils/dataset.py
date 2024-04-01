@@ -88,7 +88,7 @@ class Dataset:
             print('Please choose `n_splits` >= 2 if cross-validation is set to True.')
             return
         if self.split_complete:
-            print('Dataset has already been split, proceeding will overwrite split data. Continue? (Y/N)')
+            print('Dataset has already been split, proceeding will overwrite split data.')
             if force_split:
                 print('`force_split`=True, Proceeding with new split.')
                 pass
@@ -128,7 +128,7 @@ class Dataset:
             ids_test)
         """
         if iterative:
-            stratifier = IterativeStratification(n_splits, order=2, random_state=random_state)
+            stratifier = IterativeStratification(n_splits, order=2)
             index_generator = stratifier.split(self.features, self.labels)
         else:
             kf = KFold(n_splits=n_splits, random_state=random_state)

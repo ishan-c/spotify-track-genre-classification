@@ -55,7 +55,7 @@ class Experiment:
         metrics = Metrics(self.test_labels, predictions, self.label_names, name)
         self.results[name] = metrics
 
-    def _log_model_run(self, name: str, model: Any, config: dict, model_tags: Dict[str, str], save_model: bool = False):
+    def w_log_model_run(self, name: str, model: Any, config: dict, model_tags: Dict[str, str], save_model: bool = False):
         """
         Logs model configuration, metrics, and optionally the model itself to MLflow
 
@@ -82,9 +82,9 @@ class Experiment:
 
             if save_model:
                 if isinstance(model, BaseEstimator):
-                    mlflow.sklearn.log_model(model, artifact_path='/models/' + name, registered_model_name=name)
+                    mlflow.sklearn.log_model(model, artifact_path='models/' + name)
                 elif isinstance(model, nn.Module):
-                    mlflow.pytorch.log_model(model, artifact_path='/models/' + name, registered_model_name=name)
+                    mlflow.pytorch.log_model(model, artifact_path='models/' + name)
                 else:
                     print(f"Model type not supported for automatic MLflow logging: {type(model)}")
 
