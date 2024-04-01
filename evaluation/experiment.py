@@ -55,7 +55,7 @@ class Experiment:
         metrics = Metrics(self.test_labels, predictions, self.label_names, name)
         self.results[name] = metrics
 
-    def w_log_model_run(self, name: str, model: Any, config: dict, model_tags: Dict[str, str], save_model: bool = False):
+    def _log_model_run(self, name: str, model: Any, config: dict, model_tags: Dict[str, str], save_model: bool = False):
         """
         Logs model configuration, metrics, and optionally the model itself to MLflow
 
