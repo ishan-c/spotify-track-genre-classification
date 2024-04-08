@@ -34,28 +34,27 @@ Please see the environment.yml file for an up-to-date and full set of dependenci
 
 ### Notebooks
 - **EDA and Preprocessing**: Key insights, visualizations, and early transformations from EDA are documented in `/notebooks/eda.ipynb`.
-- **Feature Engineering**: The `/notebooks` directory also contains notebooks for more in-depth feature transformations in `feature_engineering.ipynb`. This is also where a baseline modeling and evaluation scheme is introduced to test the relative contributions of features. This process also introduces and motivates the need for developing custom labels for the dataset. This is documented in `label_clustering.ipynb`
-- **Model Exploration**: The evaluation, tuning, and comparison of various modeling options is being conducted in `model_exploration.ipynb`
+- **Feature Engineering**: The `/notebooks` directory also contains notebooks for more in-depth feature transformations in `feature_engineering.ipynb`. This is also where a baseline modeling and evaluation scheme is introduced in order to test the relative contributions of features. This process also introduces and motivates the need for developing custom labels for the dataset, documented in `label_clustering.ipynb`
+- **Model Exploration**: The evaluation, tuning, and comparison of various modeling options is being conducted in `model_exploration.ipynb`. As this process continues, this notebook may be split into smaller, more specific notebooks.
 
 ### Models, Experiments, and Other Utilities
-- The `/models` directory contains helper functions in `setup.py` to create and initialize estimators, specified in `config.py` (this will probably be split into multiple files for clarity and scalability).
+- The `/models` directory includes `setup.py` to create and initialize estimators as specified in `config.py`. The latter will likely be split into multiple files for clarity and scalability as the number of modeling options expands.
 - The `/evaluation` directory contains definitions for custom classes, including: 
   - `Experiment`: Stores a set of trained models alongside their associated dataset and metrics.This class also logs relevant information from these entities to MLFlow experiment tracking. Local copies of some instances are pickled and stored in `/experiments` (not publicly shared).
-  - `Metrics`: A utility class to calculate, store, and present metrics relevant to the model runs of this project. Instances of these are stored in attributes of `Experiment`
-- The `utils` directory contains the definition of the `Dataset` class, which is used to store and split datasets used for modeling, as well as relevant metadata. The classification task is being treated as a multi-label problem, so the process of splitting the dataset is a bit more complicated than normal. An instance of `Dataset` is produced by the feature engineering notebook and these are also stored in instances of `Experiment`. 
-- As the project evolves, additional classes or processing steps may be introduced as needed.
+  - `Metrics`: A utility class to calculate, store, and present metrics relevant to the model runs of this project. Instances of this class are stored in the attributes of the `Experiment` class.
+- The `utils` directory contains the `Dataset` class, which is used to store and split datasets used for modeling, as well as relevant metadata. The classification task is being treated as a multi-label problem, so the process of splitting the dataset is a bit more complicated than normal. An instance of `Dataset` is produced by the feature engineering notebook and these are also stored in instances of `Experiment`. 
+- As the project continues, additional classes or processing steps are expected in order to improve or expand workflows as needed.
 
 ## Methodology
 
-This project is being completed in progressive phases, although the work in each phase is interrelated not strictly sequential.
+This project is being conducted in iterative phases, with each stage building upon the insights and outputs of the previous ones, although work across these phases is interrelated and not strictly sequential.
 
-1. **Data Acquisition**: The initial stage involves planning and executing the creation of a large and representative dataset using the Spotify API.
+1. **Data Acquisition**: The initial stage involved the planning and execution of a comprehensive and representative dataset using the Spotify API, aiming for diversity in musical genres and audio features.
 
-2. **Data Exploration**: Exploratory data analysis using Pandas and Seaborn. This phase is crucial for understanding the features and labels as well as identifying patterns between them. These early insights lay the initial groundwork for model development.
+2. **Data Exploration**: Exploratory data analysis using Pandas and Seaborn was crucial for understanding both the features and labels of the dataset. Identifying patterns and relationships within and between these fields laid the initial groundwork for subsequent modeling efforts.
 
-3. **Feature Engineering**: Based on insights gained from EDA, this process selects and transforms the raw input data into a format more suitable for modeling. Most of the work is done on transforming the label data.
+3. **Feature Engineering**: Leveraging insights from EDA, this process selects and transforms fields in the raw dataset into a format more suitable and useful for modeling. Special emphasis was placed on transforming label data to mitigate challenges posed by its high-dimensional and sparse nature.
 
-4. **Model Selection and Development** (In Progress): This iterative process involves testing, evaluating, and tuning models from scikit-learn to establish their relative potential and skill for predicting a relationship between the features and labels. I will also implement neural networks for this task.
+4. **Model Selection and Development** (In Progress): This iterative process involves testing, evaluating, and tuning models from scikit-learn to gauge their relative efficacy for capturing the relationship between the features and labels.  Future work will extend into developing and fine-tuning neural network models to explore their potential advantages for this task.
 
-5. **Reporting** (Future): The results of the model exploration will be analyzed, discussed, and interpreted, along with any improvements and lessons learned from the entire project.
-
+5. **Reporting** (Future): The culmination of the project will involve the analysis and discussion of the modeling outcomes, detailing the performance of various approaches, notable findings, and key takeaways. This phase will also reflect on the project’s methodology, highlighting improvements, challenges encountered, and potential applications of the learned insights to similar problems in the music domain or beyond.
