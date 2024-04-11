@@ -571,3 +571,114 @@ baseline_gb_0_2_lr_50_est_experiment_configs = [
         }
     }
 ]
+
+baseline_gb_0_05_lr_500_est_experiment_configs = [
+    {
+        'model_type': 'skmultilearn.problem_transform.BinaryRelevance',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED,
+                'learning_rate': 0.05,
+                'n_estimators': 500
+            }
+        }
+
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.ClassifierChain',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED,
+                'learning_rate': 0.05,
+                'n_estimators': 500
+            }
+        }
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.LabelPowerset',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED,
+                'learning_rate': 0.05,
+                'n_estimators': 500
+            }
+        }
+    }
+]
+
+baseline_gb_0_03_lr_500_est_experiment_configs = [
+    {
+        'model_type': 'skmultilearn.problem_transform.BinaryRelevance',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED,
+                'learning_rate': 0.03,
+                'n_estimators': 500
+            }
+        }
+
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.ClassifierChain',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED,
+                'learning_rate': 0.03,
+                'n_estimators': 500
+            }
+        }
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.LabelPowerset',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED,
+                'learning_rate': 0.03,
+                'n_estimators': 500
+            }
+        }
+    }
+]
+
+baseline_gb_0_01_lr_500_est_experiment_configs = [
+    {
+        'model_type': 'skmultilearn.problem_transform.BinaryRelevance',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED,
+                'learning_rate': 0.01,
+                'n_estimators': 500
+            }
+        }
+
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.ClassifierChain',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED,
+                'learning_rate': 0.01,
+                'n_estimators': 500
+            }
+        }
+    },
+    {
+        'model_type': 'skmultilearn.problem_transform.LabelPowerset',
+        'base_model': {
+            'model_type': 'sklearn.ensemble.GradientBoostingClassifier',
+            'hyperparameters': {
+                'random_state': SEED,
+                'learning_rate': 0.01,
+                'n_estimators': 500
+            }
+        }
+    }
+]
