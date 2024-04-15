@@ -682,3 +682,29 @@ baseline_gb_0_01_lr_500_est_experiment_configs = [
         }
     }
 ]
+
+non_transform_experiment_configs = [
+    {
+        'model_type': 'sklearn.tree.DecisionTreeClassifier',
+        'hyperparameters': {
+            'random_state': SEED
+        }
+    },
+    {
+        'model_type': 'sklearn.ensemble.RandomForestClassifier',
+        'hyperparameters': {
+            'random_state': SEED
+        }
+    },
+    {
+        'model_type': 'sklearn.neighbors.KNeighborsClassifier',
+        'hyperparameters': {
+            }
+    },
+    {
+        'model_type': 'skmultilearn.adapt.MLkNN',
+        'hyperparameters': {
+            'k': 10
+            }
+    }
+]
